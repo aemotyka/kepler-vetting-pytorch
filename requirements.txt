@@ -1,0 +1,6 @@
+torch
+torchaudio
+requests
+python-dotenv
+pyyaml
+tqdm
