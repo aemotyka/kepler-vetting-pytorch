@@ -94,13 +94,32 @@ That shared module contains:
 
 The local and global scripts are thin wrappers that choose the input view and output artifact paths.
 
+## Fused tabular + local light-curve model
+
+Train the fused baseline:
+
+    PYTHONPATH=src python -m kepler_vetting.modeling.train_fused_local_model
+
+This model combines:
+
+- tabular KOI metadata
+- `local_view`, the 201-bin transit-centered phase-folded view
+
+The tabular branch uses train-split-only standardization followed by a small MLP.
+
+The local light-curve branch uses the shared `PhaseViewCNN` feature extractor.
+
+The two embeddings are concatenated and passed through a small classifier.
+
+This model intentionally excludes `global_view`.
+
 ## Model comparison
 
 Compare the current model baselines:
 
     PYTHONPATH=src python -m kepler_vetting.modeling.compare_model_metrics
 
-This reads the saved tabular, local light-curve, and global light-curve prediction files, then computes model metrics at:
+This reads the saved tabular, local light-curve, global light-curve, and fused-model prediction files, then computes model metrics at:
 
 - fixed threshold `0.5`
 - validation-tuned F1 threshold
@@ -134,5 +153,10 @@ Generated local artifacts:
     artifacts/models/global_view_cnn.pt
     outputs/metrics/model_comparison.csv
     outputs/metrics/model_comparison_by_seed.csv
+    outputs/metrics/fused_local_model_metrics_by_seed.csv
+    outputs/metrics/fused_local_model_metrics_summary.csv
+    outputs/metrics/fused_local_model_predictions.csv
+    outputs/metrics/fused_local_model_training_history.csv
+    artifacts/models/fused_tabular_local_cnn.pt
 
 These generated outputs are not committed to git.
