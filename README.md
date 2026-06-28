@@ -37,6 +37,6 @@ Next:
 
 - Build preprocessing for stitched, cleaned, phase-folded light curves.
 - Create train/validation/test splits grouped by kepid.
-- Train a tabular baseline.
+- Train and evaluate a tabular baseline.
 - Train a 1D CNN on folded light curves.
 - Compare tabular, light-curve, and fused models.
