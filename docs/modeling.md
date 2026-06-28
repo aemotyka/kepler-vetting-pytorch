@@ -33,6 +33,32 @@ For each seed, the split is:
 
 To avoid validation/test leakage, tabular features are reconstructed from the stored processed features and then standardized inside each seed using `StandardScaler` fit on the training split only.
 
+## Local light-curve CNN
+
+Train the first light-curve baseline:
+
+    PYTHONPATH=src python -m kepler_vetting.modeling.train_lightcurve_cnn
+
+The first CNN uses only `local_view`, the 201-bin transit-centered phase-folded view.
+
+It uses repeated stratified train/validation/test splits across multiple random seeds.
+
+For each seed, the split is:
+
+- 60% train
+- 20% validation
+- 20% test
+
+For each seed, the local-view flux arrays are normalized using only the training split mean and standard deviation. The CNN is trained with early stopping on validation loss.
+
+This baseline intentionally ignores:
+
+- `global_view`
+- tabular metadata
+- fused tabular + light-curve modeling
+
+Those can be added after the local-view-only CNN is validated.
+
 ## Outputs
 
 Generated local artifacts:
@@ -43,5 +69,10 @@ Generated local artifacts:
     outputs/metrics/tabular_logistic_coefficients_by_seed.csv
     outputs/metrics/tabular_logistic_coefficients_summary.csv
     artifacts/models/tabular_logistic_regression.pkl
+    outputs/metrics/lightcurve_cnn_metrics_by_seed.csv
+    outputs/metrics/lightcurve_cnn_metrics_summary.csv
+    outputs/metrics/lightcurve_cnn_predictions.csv
+    outputs/metrics/lightcurve_cnn_training_history.csv
+    artifacts/models/local_view_cnn.pt
 
 These generated outputs are not committed to git.
