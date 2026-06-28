@@ -1,0 +1,244 @@
+from __future__ import annotations
+
+from typing import Any
+
+import numpy as np
+import pandas as pd
+
+from kepler_vetting.processing.common import (
+    GLOBAL_BINS,
+    LOCAL_BINS,
+    MANIFEST_PATH,
+    PROCESSED_DIR,
+    PROCESSED_MANIFEST_PATH,
+    PROCESSED_NPZ_PATH,
+    TABULAR_FEATURES,
+    local_fits_paths_for_row,
+    local_window_half_width,
+    median_bin,
+    phase_fold,
+    stitch_lightcurves,
+    transform_tabular_features,
+    validate_manifest_columns,
+)
+
+
+def row_float(row: pd.Series, column: str) -> float:
+    value = pd.to_numeric(row.get(column), errors="coerce")
+    return float(value) if np.isfinite(value) else float("nan")
+
+
+def process_row(row: pd.Series) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    kepid = int(row["kepid"])
+    kepoi_name = str(row["kepoi_name"])
+
+    output_record = {
+        "kepid": kepid,
+        "kepoi_name": kepoi_name,
+        "binary_label": int(row["binary_label"]),
+        "koi_disposition": row["koi_disposition"],
+        "n_local_fits_files": 0,
+        "n_missing_fits_files": 0,
+        "n_fits_files": 0,
+        "n_failed_fits_files": 0,
+        "n_raw_points": 0,
+        "n_clean_points": 0,
+        "clean_fraction": 0.0,
+        "time_min": np.nan,
+        "time_max": np.nan,
+        "time_span_days": 0.0,
+        "global_missing_bin_fraction_before_interp": np.nan,
+        "local_missing_bin_fraction_before_interp": np.nan,
+        "local_window_half_width": np.nan,
+        "processed_ok": False,
+        "failure_reason": "",
+    }
+
+    paths, missing = local_fits_paths_for_row(row)
+
+    output_record["n_local_fits_files"] = len(paths)
+    output_record["n_missing_fits_files"] = len(missing)
+
+    if not paths:
+        output_record["failure_reason"] = "no local FITS files found"
+        return output_record, None
+
+    try:
+        time, flux, stats = stitch_lightcurves(paths)
+
+        period = row_float(row, "koi_period")
+        epoch = row_float(row, "koi_time0bk")
+        duration_hours = row_float(row, "koi_duration")
+
+        phase = phase_fold(time, period=period, epoch=epoch)
+
+        global_phase, global_view, global_missing_fraction = median_bin(
+            phase,
+            flux,
+            x_min=-0.5,
+            x_max=0.5,
+            n_bins=GLOBAL_BINS,
+        )
+
+        half_width = local_window_half_width(
+            period_days=period,
+            duration_hours=duration_hours,
+        )
+
+        local_phase, local_view, local_missing_fraction = median_bin(
+            phase,
+            flux,
+            x_min=-half_width,
+            x_max=half_width,
+            n_bins=LOCAL_BINS,
+        )
+
+        output_record.update(
+            {
+                "n_fits_files": stats["n_fits_files"],
+                "n_failed_fits_files": stats["n_failed_fits_files"],
+                "n_raw_points": stats["n_raw_points"],
+                "n_clean_points": stats["n_clean_points"],
+                "clean_fraction": stats["clean_fraction"],
+                "time_min": stats["time_min"],
+                "time_max": stats["time_max"],
+                "time_span_days": stats["time_span_days"],
+                "global_missing_bin_fraction_before_interp": global_missing_fraction,
+                "local_missing_bin_fraction_before_interp": local_missing_fraction,
+                "local_window_half_width": half_width,
+                "processed_ok": True,
+            }
+        )
+
+        feature_values = {
+            feature: row_float(row, feature)
+            for feature in TABULAR_FEATURES
+        }
+
+        processed = {
+            "kepid": kepid,
+            "kepoi_name": kepoi_name,
+            "disposition": str(row["koi_disposition"]),
+            "label": int(row["binary_label"]),
+            "global_phase": global_phase,
+            "global_view": global_view,
+            "local_phase": local_phase,
+            "local_view": local_view,
+            "local_window_half_width": half_width,
+            "tabular_raw": feature_values,
+        }
+
+        return output_record, processed
+
+    except Exception as exc:
+        output_record["failure_reason"] = f"{type(exc).__name__}: {exc}"
+        return output_record, None
+
+
+def main() -> None:
+    if not MANIFEST_PATH.exists():
+        raise FileNotFoundError(f"missing manifest: {MANIFEST_PATH}")
+
+    manifest = pd.read_csv(MANIFEST_PATH)
+    validate_manifest_columns(manifest)
+
+    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+
+    processed_records = []
+    processed_payloads = []
+
+    for _, row in manifest.iterrows():
+        record, payload = process_row(row)
+        processed_records.append(record)
+
+        status = "ok" if record["processed_ok"] else "failed"
+        print(
+            f"{status}: kepid={record['kepid']} "
+            f"koi={record['kepoi_name']} "
+            f"label={record['binary_label']} "
+            f"clean_points={record['n_clean_points']} "
+            f"reason={record['failure_reason']}"
+        )
+
+        if payload is not None:
+            processed_payloads.append(payload)
+
+    processed_manifest = pd.DataFrame(processed_records)
+    processed_manifest.to_csv(PROCESSED_MANIFEST_PATH, index=False)
+
+    if not processed_payloads:
+        raise RuntimeError("no KOIs processed successfully")
+
+    tabular_rows = [payload["tabular_raw"] for payload in processed_payloads]
+    tabular = transform_tabular_features(tabular_rows)
+
+    global_phase = processed_payloads[0]["global_phase"]
+    global_view = np.stack(
+        [payload["global_view"] for payload in processed_payloads]
+    ).astype(np.float32)
+
+    local_phase = np.stack(
+        [payload["local_phase"] for payload in processed_payloads]
+    ).astype(np.float32)
+
+    local_view = np.stack(
+        [payload["local_view"] for payload in processed_payloads]
+    ).astype(np.float32)
+
+    labels = np.asarray(
+        [payload["label"] for payload in processed_payloads],
+        dtype=np.int64,
+    )
+
+    kepid = np.asarray(
+        [payload["kepid"] for payload in processed_payloads],
+        dtype=np.int64,
+    )
+
+    kepoi_name = np.asarray(
+        [payload["kepoi_name"] for payload in processed_payloads],
+        dtype=str,
+    )
+
+    disposition = np.asarray(
+        [payload["disposition"] for payload in processed_payloads],
+        dtype=str,
+    )
+
+    local_window_half_width = np.asarray(
+        [payload["local_window_half_width"] for payload in processed_payloads],
+        dtype=np.float32,
+    )
+
+    np.savez_compressed(
+        PROCESSED_NPZ_PATH,
+        global_phase=global_phase.astype(np.float32),
+        global_view=global_view,
+        local_phase=local_phase,
+        local_view=local_view,
+        tabular_features=tabular["matrix"],
+        labels=labels,
+        kepid=kepid,
+        kepoi_name=kepoi_name,
+        disposition=disposition,
+        local_window_half_width=local_window_half_width,
+        feature_names=tabular["feature_names"],
+        feature_medians=tabular["feature_medians"],
+        feature_means=tabular["feature_means"],
+        feature_stds=tabular["feature_stds"],
+    )
+
+    print()
+    print("wrote:", PROCESSED_NPZ_PATH)
+    print("wrote:", PROCESSED_MANIFEST_PATH)
+    print("successful_rows:", len(processed_payloads))
+    print("failed_rows:", int((~processed_manifest["processed_ok"]).sum()))
+    print("global_view_shape:", global_view.shape)
+    print("local_view_shape:", local_view.shape)
+    print("tabular_features_shape:", tabular["matrix"].shape)
+    print("label_counts:")
+    print(pd.Series(labels).value_counts().sort_index())
+
+
+if __name__ == "__main__":
+    main()
