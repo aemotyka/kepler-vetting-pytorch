@@ -20,6 +20,8 @@ from kepler_vetting.modeling.lightcurve_common import (
     PATIENCE,
     WEIGHT_DECAY,
     PhaseViewCNN,
+    SPLIT_MODE,
+    describe_split,
     evaluate_predictions,
     get_device,
     make_predictions_frame,
@@ -27,10 +29,10 @@ from kepler_vetting.modeling.lightcurve_common import (
     predict_model,
     set_seed,
     sigmoid_np,
-    split_indices,
     summarize_metrics,
 )
 from kepler_vetting.modeling.train_tabular_baseline import load_unstandardized_tabular_features
+from kepler_vetting.modeling.splits import split_indices
 from kepler_vetting.processing.common import MODEL_READY_NPZ_PATH
 
 
@@ -247,6 +249,7 @@ def main() -> None:
     print("n_tabular_features:", x_tabular_unscaled.shape[1])
     print("feature_names:", feature_names.tolist())
     print("eval_seeds:", list(EVAL_SEEDS))
+    print("split_mode:", SPLIT_MODE)
     print("device:", device)
     print()
 
@@ -259,7 +262,24 @@ def main() -> None:
     for seed in tqdm(EVAL_SEEDS, desc="fused local model seeds"):
         set_seed(seed)
 
-        splits = split_indices(y, seed=seed)
+        splits = split_indices(
+            labels=y,
+            groups=kepid,
+            seed=seed,
+        )
+
+        if seed == FINAL_MODEL_SEED:
+            print("split summary:")
+            print(
+                pd.DataFrame(
+                    describe_split(
+                        labels=y,
+                        groups=kepid,
+                        splits=splits,
+                    )
+                ).to_string(index=False)
+            )
+            print()
 
         x_local_normalized, local_train_mean, local_train_std = normalize_from_train(
             x=x_local_raw,
@@ -455,6 +475,7 @@ def main() -> None:
                 "best_epoch": best_epoch,
                 "best_val_loss": best_val_loss,
                 "source_dataset": str(MODEL_READY_NPZ_PATH),
+                "split_mode": SPLIT_MODE,
                 "view": VIEW_NAME,
                 "architecture": "FusedTabularLocalCNN",
             }

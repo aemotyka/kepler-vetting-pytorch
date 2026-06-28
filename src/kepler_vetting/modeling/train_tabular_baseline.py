@@ -15,9 +15,9 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
-from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
+from kepler_vetting.modeling.splits import SPLIT_MODE, describe_split, split_indices
 
 from kepler_vetting.processing.common import MODEL_READY_NPZ_PATH
 
@@ -34,30 +34,6 @@ PREDICTIONS_PATH = METRICS_DIR / "tabular_baseline_predictions.csv"
 COEFFICIENTS_PATH = METRICS_DIR / "tabular_logistic_coefficients_by_seed.csv"
 COEFFICIENT_SUMMARY_PATH = METRICS_DIR / "tabular_logistic_coefficients_summary.csv"
 MODEL_PATH = MODEL_DIR / "tabular_logistic_regression.pkl"
-
-
-def split_indices(labels: np.ndarray, seed: int) -> dict[str, np.ndarray]:
-    all_indices = np.arange(labels.shape[0])
-
-    train_val_idx, test_idx = train_test_split(
-        all_indices,
-        test_size=0.20,
-        random_state=seed,
-        stratify=labels,
-    )
-
-    train_idx, val_idx = train_test_split(
-        train_val_idx,
-        test_size=0.25,
-        random_state=seed,
-        stratify=labels[train_val_idx],
-    )
-
-    return {
-        "train": train_idx,
-        "val": val_idx,
-        "test": test_idx,
-    }
 
 
 def evaluate_classifier(
@@ -267,6 +243,7 @@ def main() -> None:
     print("n_features:", x_unscaled.shape[1])
     print("feature_names:", feature_names.tolist())
     print("eval_seeds:", list(EVAL_SEEDS))
+    print("split_mode:", SPLIT_MODE)
     print()
 
     metrics_rows = []
@@ -276,7 +253,24 @@ def main() -> None:
     final_model_payload = None
 
     for seed in tqdm(EVAL_SEEDS, desc="tabular baseline seeds"):
-        splits = split_indices(y, seed=seed)
+        splits = split_indices(
+            labels=y,
+            groups=kepid,
+            seed=seed,
+        )
+
+        if seed == FINAL_MODEL_SEED:
+            print("split summary:")
+            print(
+                pd.DataFrame(
+                    describe_split(
+                        labels=y,
+                        groups=kepid,
+                        splits=splits,
+                    )
+                ).to_string(index=False)
+            )
+            print()
 
         x_train_unscaled = x_unscaled[splits["train"]]
         y_train = y[splits["train"]]
@@ -347,6 +341,7 @@ def main() -> None:
                         "feature_names": feature_names,
                         "seed": seed,
                         "source_dataset": str(MODEL_READY_NPZ_PATH),
+                        "split_mode": SPLIT_MODE,
                         "note": (
                             "Evaluation model for the configured final seed. "
                             "Scaler was fit on that seed's train split only."

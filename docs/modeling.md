@@ -2,6 +2,20 @@
 
 This stage trains baseline models on the processed Kepler vetting dataset.
 
+## Split policy
+
+All model training scripts use grouped train/validation/test splits by `kepid`.
+
+This prevents rows from the same Kepler target star from appearing in more than one split.
+
+The intended split proportions are approximately:
+
+- train: 60%
+- validation: 20%
+- test: 20%
+
+The splitter samples candidate group splits and keeps the candidate with the best class balance and split-size balance for each seed.
+
 ## Inputs
 
 The modeling scripts use the filtered model-ready dataset:
@@ -216,5 +230,6 @@ Generated local artifacts:
     outputs/metrics/tabular_local_features_coefficients_by_seed.csv
     outputs/metrics/tabular_local_features_coefficients_summary.csv
     artifacts/models/tabular_local_features_logistic_regression.pkl
+    src/kepler_vetting/modeling/splits.py
 
 These generated outputs are not committed to git.

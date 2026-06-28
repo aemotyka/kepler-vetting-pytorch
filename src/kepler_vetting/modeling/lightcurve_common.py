@@ -16,10 +16,10 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
-from sklearn.model_selection import train_test_split
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
+from kepler_vetting.modeling.splits import SPLIT_MODE, describe_split, split_indices
 
 from kepler_vetting.processing.common import MODEL_READY_NPZ_PATH
 
@@ -59,30 +59,6 @@ def set_seed(seed: int) -> None:
 
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
-
-
-def split_indices(labels: np.ndarray, seed: int) -> dict[str, np.ndarray]:
-    all_indices = np.arange(labels.shape[0])
-
-    train_val_idx, test_idx = train_test_split(
-        all_indices,
-        test_size=0.20,
-        random_state=seed,
-        stratify=labels,
-    )
-
-    train_idx, val_idx = train_test_split(
-        train_val_idx,
-        test_size=0.25,
-        random_state=seed,
-        stratify=labels[train_val_idx],
-    )
-
-    return {
-        "train": train_idx,
-        "val": val_idx,
-        "test": test_idx,
-    }
 
 
 class PhaseViewCNN(nn.Module):
@@ -405,6 +381,7 @@ def run_phase_view_cnn_baseline(
     print("n_rows:", y.shape[0])
     print("input_length:", x_raw.shape[1])
     print("eval_seeds:", list(EVAL_SEEDS))
+    print("split_mode:", SPLIT_MODE)
     print("device:", device)
     print()
 
@@ -417,7 +394,24 @@ def run_phase_view_cnn_baseline(
     for seed in tqdm(EVAL_SEEDS, desc=progress_description):
         set_seed(seed)
 
-        splits = split_indices(y, seed=seed)
+        splits = split_indices(
+            labels=y,
+            groups=kepid,
+            seed=seed,
+        )
+
+        if seed == FINAL_MODEL_SEED:
+            print("split summary:")
+            print(
+                pd.DataFrame(
+                    describe_split(
+                        labels=y,
+                        groups=kepid,
+                        splits=splits,
+                    )
+                ).to_string(index=False)
+            )
+            print()
 
         x_normalized, train_mean, train_std = normalize_from_train(
             x=x_raw,
@@ -617,6 +611,7 @@ def run_phase_view_cnn_baseline(
                 "best_epoch": best_epoch,
                 "best_val_loss": best_val_loss,
                 "source_dataset": str(MODEL_READY_NPZ_PATH),
+                "split_mode": SPLIT_MODE,
                 "view": view_name,
                 "architecture": "PhaseViewCNN",
             }

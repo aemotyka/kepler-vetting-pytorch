@@ -14,6 +14,7 @@ from kepler_vetting.modeling.local_derived_features import (
     build_quality_feature_matrix,
     combine_feature_blocks,
 )
+from kepler_vetting.modeling.splits import SPLIT_MODE, describe_split, split_indices
 from kepler_vetting.modeling.train_tabular_baseline import (
     EVAL_SEEDS,
     FINAL_MODEL_SEED,
@@ -21,7 +22,6 @@ from kepler_vetting.modeling.train_tabular_baseline import (
     load_unstandardized_tabular_features,
     make_predictions_frame,
     predict_scores,
-    split_indices,
     summarize_coefficients,
     summarize_metrics,
 )
@@ -156,6 +156,7 @@ def main() -> None:
     print("n_features:", x_unscaled.shape[1])
     print("feature_names:", feature_names.tolist())
     print("eval_seeds:", list(EVAL_SEEDS))
+    print("split_mode:", SPLIT_MODE)
     print()
 
     metrics_rows = []
@@ -165,7 +166,24 @@ def main() -> None:
     final_model_payload = None
 
     for seed in tqdm(EVAL_SEEDS, desc="tabular local-feature seeds"):
-        splits = split_indices(y, seed=seed)
+        splits = split_indices(
+            labels=y,
+            groups=kepid,
+            seed=seed,
+        )
+
+        if seed == FINAL_MODEL_SEED:
+            print("split summary:")
+            print(
+                pd.DataFrame(
+                    describe_split(
+                        labels=y,
+                        groups=kepid,
+                        splits=splits,
+                    )
+                ).to_string(index=False)
+            )
+            print()
 
         x_train_unscaled = x_unscaled[splits["train"]]
         y_train = y[splits["train"]]
@@ -255,6 +273,7 @@ def main() -> None:
                 "feature_names": feature_names,
                 "seed": seed,
                 "source_dataset": str(MODEL_READY_NPZ_PATH),
+                "split_mode": SPLIT_MODE,
                 "source_manifest": str(MODEL_READY_MANIFEST_PATH),
                 "note": (
                     "Evaluation model for the configured final seed. "
