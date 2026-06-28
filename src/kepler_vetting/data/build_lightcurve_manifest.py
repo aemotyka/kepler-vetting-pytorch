@@ -281,10 +281,12 @@ def build_manifest_from_scale_estimate(
 ) -> pd.DataFrame:
     scale = load_scale_estimate(scale_estimate_path)
 
+    # The scale estimate already carries koi_disposition, binary_label,
+    # kepid, and kepoi_name. Only merge in the remaining KOI metadata fields
+    # so pandas does not suffix duplicate disposition columns.
     metadata_columns = [
         "kepid",
         "kepoi_name",
-        "koi_disposition",
         "binary_label",
         "koi_period",
         "koi_time0bk",
@@ -316,6 +318,12 @@ def build_manifest_from_scale_estimate(
     if merged.empty:
         raise RuntimeError(
             f"scale estimate {scale_estimate_path} did not match KOI metadata"
+        )
+
+    if "koi_disposition" not in merged.columns:
+        raise ValueError(
+            "merged scale estimate is missing koi_disposition; "
+            f"available columns={sorted(merged.columns)}"
         )
 
     if balance_to_min_class:
@@ -354,7 +362,6 @@ def build_manifest_from_scale_estimate(
         )
 
     return pd.DataFrame(records)
-
 
 def manifest_record_from_row(
     row: pd.Series,
