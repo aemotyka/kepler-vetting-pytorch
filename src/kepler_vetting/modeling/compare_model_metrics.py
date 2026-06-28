@@ -15,6 +15,9 @@ from kepler_vetting.modeling.thresholds import (
 METRICS_DIR = Path("outputs/metrics")
 
 TABULAR_PREDICTIONS_PATH = METRICS_DIR / "tabular_baseline_predictions.csv"
+TABULAR_LOCAL_FEATURES_PREDICTIONS_PATH = (
+    METRICS_DIR / "tabular_local_features_predictions.csv"
+)
 LOCAL_LIGHTCURVE_PREDICTIONS_PATH = METRICS_DIR / "lightcurve_cnn_predictions.csv"
 GLOBAL_LIGHTCURVE_PREDICTIONS_PATH = METRICS_DIR / "global_lightcurve_cnn_predictions.csv"
 FUSED_LOCAL_PREDICTIONS_PATH = METRICS_DIR / "fused_local_model_predictions.csv"
@@ -30,6 +33,13 @@ PREDICTION_SOURCES = [
         "models": [
             "dummy_most_frequent",
             "logistic_regression",
+        ],
+    },
+    {
+        "family": "tabular_local_features",
+        "path": TABULAR_LOCAL_FEATURES_PREDICTIONS_PATH,
+        "models": [
+            "tabular_local_features_logistic_regression",
         ],
     },
     {
@@ -59,6 +69,9 @@ PREDICTION_SOURCES = [
 DISPLAY_NAMES = {
     "dummy_most_frequent": "dummy_most_frequent",
     "logistic_regression": "tabular_logistic_regression",
+    "tabular_local_features_logistic_regression": (
+        "tabular_local_features_logistic_regression"
+    ),
     "local_view_cnn": "local_view_cnn",
     "global_view_cnn": "global_view_cnn",
     "fused_tabular_local_cnn": "fused_tabular_local_cnn",
@@ -67,9 +80,10 @@ DISPLAY_NAMES = {
 MODEL_ORDER = {
     "dummy_most_frequent": 0,
     "tabular_logistic_regression": 1,
-    "local_view_cnn": 2,
-    "global_view_cnn": 3,
-    "fused_tabular_local_cnn": 4,
+    "tabular_local_features_logistic_regression": 2,
+    "local_view_cnn": 3,
+    "global_view_cnn": 4,
+    "fused_tabular_local_cnn": 5,
 }
 
 METRIC_VARIANT_ORDER = {

@@ -94,6 +94,23 @@ That shared module contains:
 
 The local and global scripts are thin wrappers that choose the input view and output artifact paths.
 
+## Tabular + local-derived feature baseline
+
+Train the tabular model with local light-curve shape and quality features:
+
+    PYTHONPATH=src python -m kepler_vetting.modeling.train_tabular_local_features
+
+This model uses the original tabular KOI metadata plus engineered features from `local_view`, including local minimum flux, center flux, local asymmetry, edge-vs-center depth, and light-curve coverage fields.
+
+It writes:
+
+    outputs/metrics/tabular_local_features_metrics_by_seed.csv
+    outputs/metrics/tabular_local_features_metrics_summary.csv
+    outputs/metrics/tabular_local_features_predictions.csv
+    outputs/metrics/tabular_local_features_coefficients_by_seed.csv
+    outputs/metrics/tabular_local_features_coefficients_summary.csv
+    artifacts/models/tabular_local_features_logistic_regression.pkl
+
 ## Fused tabular + local light-curve model
 
 Train the fused baseline:
@@ -193,5 +210,11 @@ Generated local artifacts:
     outputs/metrics/tabular_vs_fused_feature_differences.csv
     outputs/metrics/tabular_vs_fused_recurring_changed_rows.csv
     outputs/metrics/tabular_vs_fused_strongest_disagreements.csv
+    outputs/metrics/tabular_local_features_metrics_by_seed.csv
+    outputs/metrics/tabular_local_features_metrics_summary.csv
+    outputs/metrics/tabular_local_features_predictions.csv
+    outputs/metrics/tabular_local_features_coefficients_by_seed.csv
+    outputs/metrics/tabular_local_features_coefficients_summary.csv
+    artifacts/models/tabular_local_features_logistic_regression.pkl
 
 These generated outputs are not committed to git.
