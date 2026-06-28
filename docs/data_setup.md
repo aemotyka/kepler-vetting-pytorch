@@ -34,6 +34,20 @@ It writes:
 
 Use `--skip-file-sizes` for a faster directory-count-only estimate.
 
+## Build a larger manifest from the scale estimate
+
+After estimating scale, build the largest balanced manifest without rescanning MAST:
+
+    PYTHONPATH=src python -m kepler_vetting.data.build_lightcurve_manifest \
+      --from-scale-estimate outputs/data/lightcurve_scale_estimate.csv \
+      --targets-per-class all \
+      --balance-to-min-class \
+      --max-files-per-target 4
+
+This reuses the scanned FITS URL list from the scale estimate and writes:
+
+    data/metadata/lightcurve_manifest.csv
+
 ## 3. Build a small manifest
 
     PYTHONPATH=src python -m kepler_vetting.data.build_lightcurve_manifest
