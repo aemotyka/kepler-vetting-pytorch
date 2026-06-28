@@ -11,38 +11,7 @@ The FITS files are downloaded locally and are not committed to git.
 
 Run this from the repo root:
 
-    mkdir -p data/raw
-
-    python - <<'EOF'
-    from urllib.parse import quote_plus
-    from urllib.request import urlretrieve
-
-    query = """
-    select
-      kepid,
-      kepoi_name,
-      koi_disposition,
-      koi_pdisposition,
-      koi_period,
-      koi_time0bk,
-      koi_duration,
-      koi_depth,
-      koi_prad,
-      koi_teq,
-      koi_insol,
-      koi_model_snr,
-      koi_steff,
-      koi_slogg,
-      koi_srad,
-      koi_kepmag
-    from q1_q17_dr25_koi
-    where koi_disposition in ('CONFIRMED', 'CANDIDATE', 'FALSE POSITIVE')
-    """
-
-    url = "https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=" + quote_plus(query) + "&format=csv"
-    urlretrieve(url, "data/raw/koi_q1_q17_dr25.csv")
-    print("wrote data/raw/koi_q1_q17_dr25.csv")
-    EOF
+    PYTHONPATH=src python -m kepler_vetting.data.download_koi_table
 
 ## 2. Smoke test one light curve
 

@@ -1,4 +1,5 @@
 from pathlib import Path
+import time
 from urllib.request import Request, urlopen
 
 import pandas as pd
@@ -6,6 +7,9 @@ import pandas as pd
 
 MANIFEST_PATH = Path("data/metadata/lightcurve_manifest.csv")
 OUT_ROOT = Path("data/raw/lightcurves")
+
+MAX_DOWNLOAD_ATTEMPTS = 4
+RETRY_SLEEP_SECONDS = 5
 
 
 def download_url(url: str, output_path: Path) -> None:
@@ -23,6 +27,32 @@ def download_url(url: str, output_path: Path) -> None:
                 f.write(chunk)
 
     tmp_path.replace(output_path)
+
+
+def download_with_retries(url: str, output_path: Path) -> None:
+    tmp_path = output_path.with_suffix(output_path.suffix + ".tmp")
+    last_error = None
+
+    for attempt in range(1, MAX_DOWNLOAD_ATTEMPTS + 1):
+        try:
+            download_url(url, output_path)
+            return
+        except Exception as exc:
+            last_error = exc
+
+            if tmp_path.exists():
+                tmp_path.unlink()
+
+            if attempt < MAX_DOWNLOAD_ATTEMPTS:
+                print(
+                    f"retry {attempt}/{MAX_DOWNLOAD_ATTEMPTS} failed for {url}: "
+                    f"{type(exc).__name__}: {exc}"
+                )
+                time.sleep(RETRY_SLEEP_SECONDS)
+
+    raise RuntimeError(
+        f"failed after {MAX_DOWNLOAD_ATTEMPTS} attempts for {url}: {last_error}"
+    )
 
 
 def main() -> None:
@@ -54,7 +84,7 @@ def main() -> None:
 
             try:
                 print(f"download: {url}")
-                download_url(url, output_path)
+                download_with_retries(url, output_path)
                 downloaded += 1
                 print(f"wrote: {output_path}")
             except Exception as exc:
