@@ -12,6 +12,9 @@ This stage converts downloaded Kepler FITS light curves into fixed-size arrays f
 - `data/processed/kepler_q1_q17_dr25_sample.npz`
 - `data/processed/processed_manifest.csv`
 - `outputs/figures/examples/*.png`
+- `data/processed/model_readiness_report.csv`
+- `data/processed/model_ready_manifest.csv`
+- `data/processed/kepler_q1_q17_dr25_model_ready.npz`
 
 These generated outputs are local artifacts and are not committed to git.
 
@@ -28,6 +31,14 @@ Build the processed dataset:
 Validate the processed dataset:
 
     PYTHONPATH=src python -m kepler_vetting.processing.validate_processed_dataset
+
+Diagnose model readiness:
+
+    PYTHONPATH=src python -m kepler_vetting.processing.diagnose_model_readiness
+
+Create the filtered model-ready dataset:
+
+    PYTHONPATH=src python -m kepler_vetting.processing.filter_model_ready_dataset
 
 Plot example folded light curves:
 
