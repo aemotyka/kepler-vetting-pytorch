@@ -3,6 +3,7 @@ from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 import random
 import re
+import time
 
 import pandas as pd
 
@@ -13,6 +14,8 @@ OUT_PATH = Path("data/metadata/lightcurve_manifest.csv")
 TARGETS_PER_CLASS = 10
 MAX_FILES_PER_TARGET = 4
 RANDOM_SEED = 42
+MAX_DIRECTORY_ATTEMPTS = 4
+RETRY_SLEEP_SECONDS = 5
 
 LABEL_MAP = {
     "CONFIRMED": 1,
@@ -31,9 +34,28 @@ def read_url_text(url: str) -> str:
     with urlopen(req, timeout=90) as response:
         return response.read().decode("utf-8", errors="replace")
 
+def read_url_text_with_retries(url: str) -> str:
+    last_error = None
+
+    for attempt in range(1, MAX_DIRECTORY_ATTEMPTS + 1):
+        try:
+            return read_url_text(url)
+        except Exception as exc:
+            last_error = exc
+
+            if attempt < MAX_DIRECTORY_ATTEMPTS:
+                print(
+                    f"retry {attempt}/{MAX_DIRECTORY_ATTEMPTS} failed for {url}: "
+                    f"{type(exc).__name__}: {exc}"
+                )
+                time.sleep(RETRY_SLEEP_SECONDS)
+
+    raise RuntimeError(
+        f"failed after {MAX_DIRECTORY_ATTEMPTS} attempts for {url}: {last_error}"
+    )
 
 def list_long_cadence_fits(directory_url: str) -> list[str]:
-    html = read_url_text(directory_url)
+    html = read_url_text_with_retries(directory_url)
     hrefs = re.findall(r'href=["\']([^"\']+)["\']', html)
     return sorted(
         urljoin(directory_url, href)
