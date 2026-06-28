@@ -1,8 +1,7 @@
-torch
-torchaudio
-lightkurve
 astropy
-requests
-python-dotenv
-pyyaml
+matplotlib
+numpy
+pandas
+scikit-learn
+torch
 tqdm
