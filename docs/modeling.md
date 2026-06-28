@@ -113,6 +113,24 @@ The two embeddings are concatenated and passed through a small classifier.
 
 This model intentionally excludes `global_view`.
 
+## Error analysis
+
+Analyze tabular logistic versus fused tabular + local CNN predictions:
+
+    PYTHONPATH=src python -m kepler_vetting.modeling.analyze_model_errors
+
+This compares `logistic_regression` and `fused_tabular_local_cnn` using:
+
+- fixed threshold `0.5`
+- validation-tuned F1 threshold
+
+It writes:
+
+    outputs/metrics/tabular_vs_fused_error_summary.csv
+    outputs/metrics/tabular_vs_fused_changed_predictions.csv
+    outputs/metrics/tabular_vs_fused_disposition_summary.csv
+    outputs/metrics/tabular_vs_fused_feature_summary.csv
+
 ## Model comparison
 
 Compare the current model baselines:
@@ -158,5 +176,9 @@ Generated local artifacts:
     outputs/metrics/fused_local_model_predictions.csv
     outputs/metrics/fused_local_model_training_history.csv
     artifacts/models/fused_tabular_local_cnn.pt
+    outputs/metrics/tabular_vs_fused_error_summary.csv
+    outputs/metrics/tabular_vs_fused_changed_predictions.csv
+    outputs/metrics/tabular_vs_fused_disposition_summary.csv
+    outputs/metrics/tabular_vs_fused_feature_summary.csv
 
 These generated outputs are not committed to git.
