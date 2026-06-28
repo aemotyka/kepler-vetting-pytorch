@@ -81,10 +81,16 @@ Compare the current model baselines:
 
     PYTHONPATH=src python -m kepler_vetting.modeling.compare_model_metrics
 
-This reads the saved tabular, local light-curve, and global light-curve summary metrics and prints a compact test-set comparison.
+This reads the saved tabular, local light-curve, and global light-curve prediction files, then computes model metrics at:
+
+- fixed threshold `0.5`
+- validation-tuned F1 threshold
+
+The validation-tuned threshold is selected on the validation split for each seed, then applied to train, validation, and test for that same seed.
 
 It writes:
 
+    outputs/metrics/model_comparison_by_seed.csv
     outputs/metrics/model_comparison.csv
 
 ## Outputs
@@ -108,5 +114,6 @@ Generated local artifacts:
     outputs/metrics/global_lightcurve_cnn_training_history.csv
     artifacts/models/global_view_cnn.pt
     outputs/metrics/model_comparison.csv
+    outputs/metrics/model_comparison_by_seed.csv
 
 These generated outputs are not committed to git.
