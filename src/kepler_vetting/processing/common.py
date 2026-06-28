@@ -46,10 +46,9 @@ REQUIRED_MANIFEST_COLUMNS = [
     "kepoi_name",
     "koi_disposition",
     "binary_label",
-    "koi_period",
     "koi_time0bk",
-    "koi_duration",
     "selected_fits_urls",
+    *TABULAR_FEATURES,
 ]
 
 

@@ -126,6 +126,8 @@ def main() -> None:
                     "koi_depth": row.get("koi_depth"),
                     "koi_model_snr": row.get("koi_model_snr"),
                     "koi_prad": row.get("koi_prad"),
+                    "koi_teq": row.get("koi_teq"),
+                    "koi_insol": row.get("koi_insol"),
                     "koi_steff": row.get("koi_steff"),
                     "koi_slogg": row.get("koi_slogg"),
                     "koi_srad": row.get("koi_srad"),
