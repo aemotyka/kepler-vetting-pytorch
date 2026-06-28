@@ -1,5 +1,7 @@
 torch
 torchaudio
+lightkurve
+astropy
 requests
 python-dotenv
 pyyaml
