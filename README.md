@@ -1,6 +1,6 @@
 # Kepler Vetting with PyTorch
 
-This project uses public NASA Kepler data to build a PyTorch model for exoplanet candidate vetting.
+`kepler-vetting-pytorch` is a PyTorch project for exoplanet candidate vetting using public NASA Kepler data.
 
 The goal is to classify Kepler Objects of Interest as either planet-like signals or false positives. The labels and tabular candidate metadata come from the NASA Exoplanet Archive Q1-Q17 DR25 KOI table. The time-series inputs come from public MAST Kepler long-cadence FITS light curves.
 
