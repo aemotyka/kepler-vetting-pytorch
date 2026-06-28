@@ -19,6 +19,21 @@ Run this from the repo root:
 
 Expected result: one public Kepler FITS file downloads and opens with astropy.
 
+## Estimate scale before larger downloads
+
+Before increasing the manifest target count, estimate the number of targets, selected FITS files, and projected disk use:
+
+    PYTHONPATH=src python -m kepler_vetting.data.estimate_lightcurve_scale --limit-per-class all --max-files-per-target 4
+
+This does not download FITS files.
+
+It writes:
+
+    outputs/data/lightcurve_scale_estimate.csv
+    outputs/data/lightcurve_scale_summary.csv
+
+Use `--skip-file-sizes` for a faster directory-count-only estimate.
+
 ## 3. Build a small manifest
 
     PYTHONPATH=src python -m kepler_vetting.data.build_lightcurve_manifest
