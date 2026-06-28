@@ -205,8 +205,9 @@ def summarize_metrics(metrics: pd.DataFrame) -> pd.DataFrame:
 
     summary = (
         metrics
-        .groupby(["model", "split"], as_index=False)[metric_columns]
+        .groupby(["model", "split"])[metric_columns]
         .agg(["mean", "std", "min", "max"])
+        .reset_index()
     )
 
     summary.columns = [
@@ -214,7 +215,7 @@ def summarize_metrics(metrics: pd.DataFrame) -> pd.DataFrame:
         for col in summary.columns.to_flat_index()
     ]
 
-    return summary.reset_index()
+    return summary
 
 
 def summarize_coefficients(coefficients: pd.DataFrame) -> pd.DataFrame:
