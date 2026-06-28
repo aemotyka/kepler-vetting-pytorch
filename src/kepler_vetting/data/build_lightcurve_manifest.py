@@ -11,7 +11,7 @@ import pandas as pd
 KOI_PATH = Path("data/raw/koi_q1_q17_dr25.csv")
 OUT_PATH = Path("data/metadata/lightcurve_manifest.csv")
 
-TARGETS_PER_CLASS = 10
+TARGETS_PER_CLASS = 100
 MAX_FILES_PER_TARGET = 4
 RANDOM_SEED = 42
 MAX_DIRECTORY_ATTEMPTS = 4
