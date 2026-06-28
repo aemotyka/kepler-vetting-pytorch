@@ -131,6 +131,16 @@ It writes:
     outputs/metrics/tabular_vs_fused_disposition_summary.csv
     outputs/metrics/tabular_vs_fused_feature_summary.csv
 
+Summarize the generated error-analysis CSVs in the terminal:
+
+    PYTHONPATH=src python -m kepler_vetting.modeling.summarize_error_analysis
+
+This writes:
+
+    outputs/metrics/tabular_vs_fused_feature_differences.csv
+    outputs/metrics/tabular_vs_fused_recurring_changed_rows.csv
+    outputs/metrics/tabular_vs_fused_strongest_disagreements.csv
+
 ## Model comparison
 
 Compare the current model baselines:
@@ -180,5 +190,8 @@ Generated local artifacts:
     outputs/metrics/tabular_vs_fused_changed_predictions.csv
     outputs/metrics/tabular_vs_fused_disposition_summary.csv
     outputs/metrics/tabular_vs_fused_feature_summary.csv
+    outputs/metrics/tabular_vs_fused_feature_differences.csv
+    outputs/metrics/tabular_vs_fused_recurring_changed_rows.csv
+    outputs/metrics/tabular_vs_fused_strongest_disagreements.csv
 
 These generated outputs are not committed to git.
