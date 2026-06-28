@@ -75,6 +75,25 @@ This baseline intentionally ignores:
 
 Testing `local_view` and `global_view` separately helps determine whether the full phase-folded context adds useful signal before building a combined light-curve model.
 
+## Light-curve training implementation
+
+The local and global light-curve CNN scripts share implementation code in:
+
+    src/kepler_vetting/modeling/lightcurve_common.py
+
+That shared module contains:
+
+- split creation
+- device selection
+- seed setting
+- tensor loaders
+- train-split-only view normalization
+- the shared `PhaseViewCNN` architecture
+- epoch training/evaluation helpers
+- repeated-seed CNN baseline runner
+
+The local and global scripts are thin wrappers that choose the input view and output artifact paths.
+
 ## Model comparison
 
 Compare the current model baselines:
