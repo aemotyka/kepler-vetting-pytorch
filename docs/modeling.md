@@ -23,19 +23,25 @@ The script trains:
 1. `DummyClassifier(strategy="most_frequent")`
 2. `LogisticRegression(class_weight="balanced")`
 
-It uses stratified train/validation/test splits:
+It uses repeated stratified train/validation/test splits across multiple random seeds.
+
+For each seed, the split is:
 
 - 60% train
 - 20% validation
 - 20% test
 
+To avoid validation/test leakage, tabular features are reconstructed from the stored processed features and then standardized inside each seed using `StandardScaler` fit on the training split only.
+
 ## Outputs
 
 Generated local artifacts:
 
-    outputs/metrics/tabular_baseline_metrics.csv
+    outputs/metrics/tabular_baseline_metrics_by_seed.csv
+    outputs/metrics/tabular_baseline_metrics_summary.csv
     outputs/metrics/tabular_baseline_predictions.csv
-    outputs/metrics/tabular_logistic_coefficients.csv
+    outputs/metrics/tabular_logistic_coefficients_by_seed.csv
+    outputs/metrics/tabular_logistic_coefficients_summary.csv
     artifacts/models/tabular_logistic_regression.pkl
 
 These generated outputs are not committed to git.

@@ -16,35 +16,40 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from tqdm import tqdm
 
 from kepler_vetting.processing.common import MODEL_READY_NPZ_PATH
 
 
-RANDOM_SEED = 42
+EVAL_SEEDS = tuple(range(10))
+FINAL_MODEL_SEED = 0
 
 METRICS_DIR = Path("outputs/metrics")
 MODEL_DIR = Path("artifacts/models")
 
-METRICS_PATH = METRICS_DIR / "tabular_baseline_metrics.csv"
+PER_SEED_METRICS_PATH = METRICS_DIR / "tabular_baseline_metrics_by_seed.csv"
+SUMMARY_METRICS_PATH = METRICS_DIR / "tabular_baseline_metrics_summary.csv"
 PREDICTIONS_PATH = METRICS_DIR / "tabular_baseline_predictions.csv"
-COEFFICIENTS_PATH = METRICS_DIR / "tabular_logistic_coefficients.csv"
+COEFFICIENTS_PATH = METRICS_DIR / "tabular_logistic_coefficients_by_seed.csv"
+COEFFICIENT_SUMMARY_PATH = METRICS_DIR / "tabular_logistic_coefficients_summary.csv"
 MODEL_PATH = MODEL_DIR / "tabular_logistic_regression.pkl"
 
 
-def split_indices(labels: np.ndarray) -> dict[str, np.ndarray]:
+def split_indices(labels: np.ndarray, seed: int) -> dict[str, np.ndarray]:
     all_indices = np.arange(labels.shape[0])
 
     train_val_idx, test_idx = train_test_split(
         all_indices,
         test_size=0.20,
-        random_state=RANDOM_SEED,
+        random_state=seed,
         stratify=labels,
     )
 
     train_idx, val_idx = train_test_split(
         train_val_idx,
         test_size=0.25,
-        random_state=RANDOM_SEED,
+        random_state=seed,
         stratify=labels[train_val_idx],
     )
 
@@ -57,6 +62,7 @@ def split_indices(labels: np.ndarray) -> dict[str, np.ndarray]:
 
 def evaluate_classifier(
     model_name: str,
+    seed: int,
     split_name: str,
     y_true: np.ndarray,
     y_pred: np.ndarray,
@@ -70,6 +76,7 @@ def evaluate_classifier(
 
     record: dict[str, float | int | str] = {
         "model": model_name,
+        "seed": seed,
         "split": split_name,
         "n": int(y_true.shape[0]),
         "accuracy": accuracy_score(y_true, y_pred),
@@ -105,6 +112,7 @@ def predict_scores(model, x: np.ndarray) -> np.ndarray | None:
 
 def make_predictions_frame(
     model_name: str,
+    seed: int,
     split_name: str,
     indices: np.ndarray,
     y_true: np.ndarray,
@@ -122,6 +130,7 @@ def make_predictions_frame(
     return pd.DataFrame(
         {
             "model": model_name,
+            "seed": seed,
             "split": split_name,
             "row_index": indices,
             "kepid": kepid[indices],
@@ -135,6 +144,96 @@ def make_predictions_frame(
     )
 
 
+def load_unstandardized_tabular_features(data: np.lib.npyio.NpzFile) -> np.ndarray:
+    standardized = data["tabular_features"].astype(np.float64)
+    feature_means = data["feature_means"].astype(np.float64)
+    feature_stds = data["feature_stds"].astype(np.float64)
+
+    if standardized.ndim != 2:
+        raise ValueError(f"tabular_features must be 2D; got shape {standardized.shape}")
+
+    if feature_means.shape[0] != standardized.shape[1]:
+        raise ValueError(
+            "feature_means length does not match tabular feature count: "
+            f"{feature_means.shape[0]} vs {standardized.shape[1]}"
+        )
+
+    if feature_stds.shape[0] != standardized.shape[1]:
+        raise ValueError(
+            "feature_stds length does not match tabular feature count: "
+            f"{feature_stds.shape[0]} vs {standardized.shape[1]}"
+        )
+
+    if not np.isfinite(standardized).all():
+        raise ValueError("tabular_features contains non-finite values")
+
+    if not np.isfinite(feature_means).all():
+        raise ValueError("feature_means contains non-finite values")
+
+    if not np.isfinite(feature_stds).all():
+        raise ValueError("feature_stds contains non-finite values")
+
+    if np.any(feature_stds == 0):
+        raise ValueError("feature_stds contains zero values")
+
+    return standardized * feature_stds + feature_means
+
+
+def fit_models(x_train: np.ndarray, y_train: np.ndarray, seed: int) -> dict[str, object]:
+    return {
+        "dummy_most_frequent": DummyClassifier(strategy="most_frequent"),
+        "logistic_regression": LogisticRegression(
+            max_iter=1000,
+            class_weight="balanced",
+            random_state=seed,
+        ),
+    }
+
+
+def summarize_metrics(metrics: pd.DataFrame) -> pd.DataFrame:
+    metric_columns = [
+        "accuracy",
+        "precision",
+        "recall",
+        "f1",
+        "roc_auc",
+        "tn",
+        "fp",
+        "fn",
+        "tp",
+    ]
+
+    summary = (
+        metrics
+        .groupby(["model", "split"], as_index=False)[metric_columns]
+        .agg(["mean", "std", "min", "max"])
+    )
+
+    summary.columns = [
+        "_".join(col).rstrip("_")
+        for col in summary.columns.to_flat_index()
+    ]
+
+    return summary.reset_index()
+
+
+def summarize_coefficients(coefficients: pd.DataFrame) -> pd.DataFrame:
+    summary = (
+        coefficients
+        .groupby("feature", as_index=False)
+        .agg(
+            coefficient_mean=("coefficient", "mean"),
+            coefficient_std=("coefficient", "std"),
+            coefficient_min=("coefficient", "min"),
+            coefficient_max=("coefficient", "max"),
+            abs_coefficient_mean=("abs_coefficient", "mean"),
+        )
+        .sort_values("abs_coefficient_mean", ascending=False)
+    )
+
+    return summary
+
+
 def main() -> None:
     if not MODEL_READY_NPZ_PATH.exists():
         raise FileNotFoundError(
@@ -144,128 +243,149 @@ def main() -> None:
 
     data = np.load(MODEL_READY_NPZ_PATH)
 
-    x = data["tabular_features"].astype(np.float32)
+    x_unscaled = load_unstandardized_tabular_features(data)
     y = data["labels"].astype(np.int64)
     kepid = data["kepid"]
     kepoi_name = data["kepoi_name"]
     disposition = data["disposition"]
     feature_names = data["feature_names"].astype(str)
 
-    if x.ndim != 2:
-        raise ValueError(f"tabular_features must be 2D; got shape {x.shape}")
-
-    if x.shape[0] != y.shape[0]:
+    if x_unscaled.shape[0] != y.shape[0]:
         raise ValueError(
             "tabular_features and labels row counts differ: "
-            f"{x.shape[0]} vs {y.shape[0]}"
+            f"{x_unscaled.shape[0]} vs {y.shape[0]}"
         )
 
     if set(y.tolist()) - {0, 1}:
-        raise ValueError(f"labels must only contain 0/1 values; got {sorted(set(y.tolist()))}")
-
-    splits = split_indices(y)
+        raise ValueError(
+            f"labels must only contain 0/1 values; got {sorted(set(y.tolist()))}"
+        )
 
     print("dataset:", MODEL_READY_NPZ_PATH)
     print("n_rows:", y.shape[0])
-    print("n_features:", x.shape[1])
+    print("n_features:", x_unscaled.shape[1])
     print("feature_names:", feature_names.tolist())
+    print("eval_seeds:", list(EVAL_SEEDS))
     print()
-    print("split sizes:")
-    for split_name, indices in splits.items():
-        counts = pd.Series(y[indices]).value_counts().sort_index()
-        print(f"{split_name}: n={len(indices)}")
-        print(counts.to_string())
-        print()
-
-    x_train = x[splits["train"]]
-    y_train = y[splits["train"]]
-
-    models = {
-        "dummy_most_frequent": DummyClassifier(strategy="most_frequent"),
-        "logistic_regression": LogisticRegression(
-            max_iter=1000,
-            class_weight="balanced",
-            random_state=RANDOM_SEED,
-        ),
-    }
 
     metrics_rows = []
     prediction_frames = []
+    coefficient_frames = []
 
-    for model_name, model in models.items():
-        model.fit(x_train, y_train)
+    final_model_payload = None
 
-        for split_name, indices in splits.items():
-            split_x = x[indices]
-            split_y = y[indices]
+    for seed in tqdm(EVAL_SEEDS, desc="tabular baseline seeds"):
+        splits = split_indices(y, seed=seed)
 
-            y_pred = model.predict(split_x)
-            y_score = predict_scores(model, split_x)
+        x_train_unscaled = x_unscaled[splits["train"]]
+        y_train = y[splits["train"]]
 
-            metrics_rows.append(
-                evaluate_classifier(
-                    model_name=model_name,
-                    split_name=split_name,
-                    y_true=split_y,
-                    y_pred=y_pred,
-                    y_score=y_score,
+        scaler = StandardScaler()
+        x_train = scaler.fit_transform(x_train_unscaled)
+
+        split_features = {
+            "train": x_train,
+            "val": scaler.transform(x_unscaled[splits["val"]]),
+            "test": scaler.transform(x_unscaled[splits["test"]]),
+        }
+
+        models = fit_models(x_train=x_train, y_train=y_train, seed=seed)
+
+        for model_name, model in models.items():
+            model.fit(x_train, y_train)
+
+            for split_name, indices in splits.items():
+                split_x = split_features[split_name]
+                split_y = y[indices]
+
+                y_pred = model.predict(split_x)
+                y_score = predict_scores(model, split_x)
+
+                metrics_rows.append(
+                    evaluate_classifier(
+                        model_name=model_name,
+                        seed=seed,
+                        split_name=split_name,
+                        y_true=split_y,
+                        y_pred=y_pred,
+                        y_score=y_score,
+                    )
                 )
-            )
 
-            prediction_frames.append(
-                make_predictions_frame(
-                    model_name=model_name,
-                    split_name=split_name,
-                    indices=indices,
-                    y_true=split_y,
-                    y_pred=y_pred,
-                    y_score=y_score,
-                    kepid=kepid,
-                    kepoi_name=kepoi_name,
-                    disposition=disposition,
+                prediction_frames.append(
+                    make_predictions_frame(
+                        model_name=model_name,
+                        seed=seed,
+                        split_name=split_name,
+                        indices=indices,
+                        y_true=split_y,
+                        y_pred=y_pred,
+                        y_score=y_score,
+                        kepid=kepid,
+                        kepoi_name=kepoi_name,
+                        disposition=disposition,
+                    )
                 )
-            )
+
+            if model_name == "logistic_regression":
+                coefficient_frames.append(
+                    pd.DataFrame(
+                        {
+                            "seed": seed,
+                            "feature": feature_names,
+                            "coefficient": model.coef_[0],
+                            "abs_coefficient": np.abs(model.coef_[0]),
+                        }
+                    )
+                )
+
+                if seed == FINAL_MODEL_SEED:
+                    final_model_payload = {
+                        "model": model,
+                        "scaler": scaler,
+                        "feature_names": feature_names,
+                        "seed": seed,
+                        "source_dataset": str(MODEL_READY_NPZ_PATH),
+                        "note": (
+                            "Evaluation model for the configured final seed. "
+                            "Scaler was fit on that seed's train split only."
+                        ),
+                    }
+
+    if final_model_payload is None:
+        raise RuntimeError(f"did not capture final model for seed={FINAL_MODEL_SEED}")
 
     METRICS_DIR.mkdir(parents=True, exist_ok=True)
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
     metrics = pd.DataFrame(metrics_rows)
-    metrics.to_csv(METRICS_PATH, index=False)
+    metrics_summary = summarize_metrics(metrics)
 
     predictions = pd.concat(prediction_frames, ignore_index=True)
+
+    coefficients = pd.concat(coefficient_frames, ignore_index=True)
+    coefficient_summary = summarize_coefficients(coefficients)
+
+    metrics.to_csv(PER_SEED_METRICS_PATH, index=False)
+    metrics_summary.to_csv(SUMMARY_METRICS_PATH, index=False)
     predictions.to_csv(PREDICTIONS_PATH, index=False)
-
-    logistic_model = models["logistic_regression"]
-    coefficients = pd.DataFrame(
-        {
-            "feature": feature_names,
-            "coefficient": logistic_model.coef_[0],
-            "abs_coefficient": np.abs(logistic_model.coef_[0]),
-        }
-    ).sort_values("abs_coefficient", ascending=False)
-
     coefficients.to_csv(COEFFICIENTS_PATH, index=False)
+    coefficient_summary.to_csv(COEFFICIENT_SUMMARY_PATH, index=False)
 
     with MODEL_PATH.open("wb") as f:
-        pickle.dump(
-            {
-                "model": logistic_model,
-                "feature_names": feature_names,
-                "random_seed": RANDOM_SEED,
-                "source_dataset": str(MODEL_READY_NPZ_PATH),
-            },
-            f,
-        )
+        pickle.dump(final_model_payload, f)
 
-    print("metrics:")
-    print(metrics.to_string(index=False))
+    print("metrics summary:")
+    print(metrics_summary.to_string(index=False))
     print()
-    print("top logistic coefficients:")
-    print(coefficients.head(15).to_string(index=False))
+    print("top logistic coefficient summary:")
+    print(coefficient_summary.head(15).to_string(index=False))
     print()
-    print("wrote:", METRICS_PATH)
+    print("wrote:", PER_SEED_METRICS_PATH)
+    print("wrote:", SUMMARY_METRICS_PATH)
     print("wrote:", PREDICTIONS_PATH)
     print("wrote:", COEFFICIENTS_PATH)
+    print("wrote:", COEFFICIENT_SUMMARY_PATH)
     print("wrote:", MODEL_PATH)
     print("TRAIN_TABULAR_BASELINE_OK")
 
