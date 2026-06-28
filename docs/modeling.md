@@ -35,11 +35,11 @@ To avoid validation/test leakage, tabular features are reconstructed from the st
 
 ## Local light-curve CNN
 
-Train the first light-curve baseline:
+Train the local light-curve baseline:
 
     PYTHONPATH=src python -m kepler_vetting.modeling.train_lightcurve_cnn
 
-The first CNN uses only `local_view`, the 201-bin transit-centered phase-folded view.
+This CNN uses only `local_view`, the 201-bin transit-centered phase-folded view.
 
 It uses repeated stratified train/validation/test splits across multiple random seeds.
 
@@ -57,7 +57,23 @@ This baseline intentionally ignores:
 - tabular metadata
 - fused tabular + light-curve modeling
 
-Those can be added after the local-view-only CNN is validated.
+## Global light-curve CNN
+
+Train the global light-curve baseline:
+
+    PYTHONPATH=src python -m kepler_vetting.modeling.train_global_lightcurve_cnn
+
+This CNN uses only `global_view`, the 2001-bin full phase-folded view.
+
+It uses the same split strategy, normalization approach, CNN architecture, early stopping, and metrics as the local-view CNN.
+
+This baseline intentionally ignores:
+
+- `local_view`
+- tabular metadata
+- fused tabular + light-curve modeling
+
+Testing `local_view` and `global_view` separately helps determine whether the full phase-folded context adds useful signal before building a combined light-curve model.
 
 ## Model comparison
 
@@ -65,7 +81,7 @@ Compare the current model baselines:
 
     PYTHONPATH=src python -m kepler_vetting.modeling.compare_model_metrics
 
-This reads the saved tabular and light-curve summary metrics and prints a compact test-set comparison.
+This reads the saved tabular, local light-curve, and global light-curve summary metrics and prints a compact test-set comparison.
 
 It writes:
 
@@ -86,6 +102,11 @@ Generated local artifacts:
     outputs/metrics/lightcurve_cnn_predictions.csv
     outputs/metrics/lightcurve_cnn_training_history.csv
     artifacts/models/local_view_cnn.pt
+    outputs/metrics/global_lightcurve_cnn_metrics_by_seed.csv
+    outputs/metrics/global_lightcurve_cnn_metrics_summary.csv
+    outputs/metrics/global_lightcurve_cnn_predictions.csv
+    outputs/metrics/global_lightcurve_cnn_training_history.csv
+    artifacts/models/global_view_cnn.pt
     outputs/metrics/model_comparison.csv
 
 These generated outputs are not committed to git.

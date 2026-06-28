@@ -8,7 +8,8 @@ import pandas as pd
 METRICS_DIR = Path("outputs/metrics")
 
 TABULAR_SUMMARY_PATH = METRICS_DIR / "tabular_baseline_metrics_summary.csv"
-LIGHTCURVE_SUMMARY_PATH = METRICS_DIR / "lightcurve_cnn_metrics_summary.csv"
+LOCAL_LIGHTCURVE_SUMMARY_PATH = METRICS_DIR / "lightcurve_cnn_metrics_summary.csv"
+GLOBAL_LIGHTCURVE_SUMMARY_PATH = METRICS_DIR / "global_lightcurve_cnn_metrics_summary.csv"
 
 COMPARISON_PATH = METRICS_DIR / "model_comparison.csv"
 
@@ -17,12 +18,14 @@ DISPLAY_NAMES = {
     "dummy_most_frequent": "dummy_most_frequent",
     "logistic_regression": "tabular_logistic_regression",
     "local_view_cnn": "local_view_cnn",
+    "global_view_cnn": "global_view_cnn",
 }
 
 MODEL_ORDER = {
     "dummy_most_frequent": 0,
     "tabular_logistic_regression": 1,
     "local_view_cnn": 2,
+    "global_view_cnn": 3,
 }
 
 SPLIT_ORDER = {
@@ -92,9 +95,14 @@ def build_comparison() -> pd.DataFrame:
         family="tabular",
     )
 
-    lightcurve = load_summary(
-        path=LIGHTCURVE_SUMMARY_PATH,
-        family="lightcurve",
+    local_lightcurve = load_summary(
+        path=LOCAL_LIGHTCURVE_SUMMARY_PATH,
+        family="local_lightcurve",
+    )
+
+    global_lightcurve = load_summary(
+        path=GLOBAL_LIGHTCURVE_SUMMARY_PATH,
+        family="global_lightcurve",
     )
 
     tabular_keep = tabular[
@@ -106,10 +114,18 @@ def build_comparison() -> pd.DataFrame:
         )
     ].copy()
 
-    lightcurve_keep = lightcurve[
-        lightcurve["model"].isin(
+    local_lightcurve_keep = local_lightcurve[
+        local_lightcurve["model"].isin(
             [
                 "local_view_cnn",
+            ]
+        )
+    ].copy()
+
+    global_lightcurve_keep = global_lightcurve[
+        global_lightcurve["model"].isin(
+            [
+                "global_view_cnn",
             ]
         )
     ].copy()
@@ -117,7 +133,8 @@ def build_comparison() -> pd.DataFrame:
     comparison = pd.concat(
         [
             tabular_keep,
-            lightcurve_keep,
+            local_lightcurve_keep,
+            global_lightcurve_keep,
         ],
         ignore_index=True,
     )
