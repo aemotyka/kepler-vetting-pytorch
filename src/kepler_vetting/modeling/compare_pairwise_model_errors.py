@@ -32,6 +32,9 @@ TABULAR_LOCAL_FEATURES_PREDICTIONS_PATH = (
 LOCAL_CNN_PREDICTIONS_PATH = METRICS_DIR / "lightcurve_cnn_predictions.csv"
 GLOBAL_CNN_PREDICTIONS_PATH = METRICS_DIR / "global_lightcurve_cnn_predictions.csv"
 FUSED_PREDICTIONS_PATH = METRICS_DIR / "fused_local_model_predictions.csv"
+FUSED_LOCAL_FEATURES_PREDICTIONS_PATH = (
+    METRICS_DIR / "fused_local_features_model_predictions.csv"
+)
 
 PAIRWISE_SUMMARY_PATH = METRICS_DIR / "pairwise_model_error_summary.csv"
 PAIRWISE_CHANGED_PATH = METRICS_DIR / "pairwise_model_changed_predictions.csv"
@@ -205,6 +208,11 @@ MODEL_SPECS = {
         model_name="fused_tabular_local_cnn",
         predictions_path=FUSED_PREDICTIONS_PATH,
     ),
+    "fused_tabular_local_features_cnn": ModelSpec(
+        display_model="fused_tabular_local_features_cnn",
+        model_name="fused_tabular_local_features_cnn",
+        predictions_path=FUSED_LOCAL_FEATURES_PREDICTIONS_PATH,
+    ),
 }
 
 PAIR_SPECS = [
@@ -219,14 +227,29 @@ PAIR_SPECS = [
         right=MODEL_SPECS["fused_tabular_local_cnn"],
     ),
     PairSpec(
-        pair_id="local_cnn_vs_fused",
-        left=MODEL_SPECS["local_view_cnn"],
-        right=MODEL_SPECS["fused_tabular_local_cnn"],
+        pair_id="tabular_vs_fused_local_features",
+        left=MODEL_SPECS["tabular_logistic_regression"],
+        right=MODEL_SPECS["fused_tabular_local_features_cnn"],
     ),
     PairSpec(
-        pair_id="global_cnn_vs_fused",
+        pair_id="tabular_local_features_vs_fused_local_features",
+        left=MODEL_SPECS["tabular_local_features_logistic_regression"],
+        right=MODEL_SPECS["fused_tabular_local_features_cnn"],
+    ),
+    PairSpec(
+        pair_id="fused_vs_fused_local_features",
+        left=MODEL_SPECS["fused_tabular_local_cnn"],
+        right=MODEL_SPECS["fused_tabular_local_features_cnn"],
+    ),
+    PairSpec(
+        pair_id="local_cnn_vs_fused_local_features",
+        left=MODEL_SPECS["local_view_cnn"],
+        right=MODEL_SPECS["fused_tabular_local_features_cnn"],
+    ),
+    PairSpec(
+        pair_id="global_cnn_vs_fused_local_features",
         left=MODEL_SPECS["global_view_cnn"],
-        right=MODEL_SPECS["fused_tabular_local_cnn"],
+        right=MODEL_SPECS["fused_tabular_local_features_cnn"],
     ),
 ]
 
@@ -997,7 +1020,7 @@ def main() -> None:
         columns=SUMMARY_COLUMNS,
     )
 
-    strict_pair = "tabular_local_features_vs_fused"
+    strict_pair = "tabular_local_features_vs_fused_local_features"
 
     strict_changed = changed[
         (changed["pair_id"] == strict_pair)

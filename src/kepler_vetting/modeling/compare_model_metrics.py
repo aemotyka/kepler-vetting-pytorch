@@ -23,6 +23,9 @@ TABULAR_LOCAL_FEATURES_PREDICTIONS_PATH = (
 LOCAL_LIGHTCURVE_PREDICTIONS_PATH = METRICS_DIR / "lightcurve_cnn_predictions.csv"
 GLOBAL_LIGHTCURVE_PREDICTIONS_PATH = METRICS_DIR / "global_lightcurve_cnn_predictions.csv"
 FUSED_LOCAL_PREDICTIONS_PATH = METRICS_DIR / "fused_local_model_predictions.csv"
+FUSED_LOCAL_FEATURES_PREDICTIONS_PATH = (
+    METRICS_DIR / "fused_local_features_model_predictions.csv"
+)
 
 COMPARISON_BY_SEED_PATH = METRICS_DIR / "model_comparison_by_seed.csv"
 COMPARISON_PATH = METRICS_DIR / "model_comparison.csv"
@@ -65,6 +68,13 @@ PREDICTION_SOURCES = [
             "fused_tabular_local_cnn",
         ],
     },
+    {
+        "family": "fused_local_features",
+        "path": FUSED_LOCAL_FEATURES_PREDICTIONS_PATH,
+        "models": [
+            "fused_tabular_local_features_cnn",
+        ],
+    },
 ]
 
 
@@ -77,6 +87,7 @@ DISPLAY_NAMES = {
     "local_view_cnn": "local_view_cnn",
     "global_view_cnn": "global_view_cnn",
     "fused_tabular_local_cnn": "fused_tabular_local_cnn",
+    "fused_tabular_local_features_cnn": "fused_tabular_local_features_cnn",
 }
 
 MODEL_ORDER = {
@@ -86,6 +97,7 @@ MODEL_ORDER = {
     "local_view_cnn": 3,
     "global_view_cnn": 4,
     "fused_tabular_local_cnn": 5,
+    "fused_tabular_local_features_cnn": 6,
 }
 
 METRIC_VARIANT_ORDER = {
