@@ -10,8 +10,8 @@ from kepler_vetting.processing.common import (
     MODEL_READY_MAX_LOCAL_MISSING_FRACTION,
     MODEL_READY_MIN_CLEAN_POINTS,
     MODEL_READY_MIN_FITS_FILES,
-    PROCESSED_MANIFEST_PATH,
     PROCESSED_NPZ_PATH,
+    PROCESSED_SUCCESSFUL_MANIFEST_PATH,
 )
 
 
@@ -57,13 +57,21 @@ def build_model_readiness_report() -> pd.DataFrame:
     if not PROCESSED_NPZ_PATH.exists():
         raise FileNotFoundError(f"missing processed dataset: {PROCESSED_NPZ_PATH}")
 
-    if not PROCESSED_MANIFEST_PATH.exists():
-        raise FileNotFoundError(f"missing processed manifest: {PROCESSED_MANIFEST_PATH}")
+    if not PROCESSED_SUCCESSFUL_MANIFEST_PATH.exists():
+        raise FileNotFoundError(
+            f"missing successful processed manifest: {PROCESSED_SUCCESSFUL_MANIFEST_PATH}"
+        )
 
     data = np.load(PROCESSED_NPZ_PATH)
-    processed_manifest = pd.read_csv(PROCESSED_MANIFEST_PATH)
+    successful = pd.read_csv(PROCESSED_SUCCESSFUL_MANIFEST_PATH).reset_index(drop=True)
 
-    successful = processed_manifest[processed_ok_mask(processed_manifest)].reset_index(drop=True)
+    if "processed_ok" in successful.columns:
+        successful_mask = processed_ok_mask(successful)
+
+        if not successful_mask.all():
+            raise ValueError(
+                "processed_successful_manifest contains rows where processed_ok is false"
+            )
 
     labels = data["labels"]
     if len(successful) != len(labels):

@@ -8,6 +8,7 @@ from kepler_vetting.processing.common import (
     LOCAL_BINS,
     PROCESSED_MANIFEST_PATH,
     PROCESSED_NPZ_PATH,
+    PROCESSED_SUCCESSFUL_MANIFEST_PATH,
 )
 
 
@@ -42,8 +43,14 @@ def main() -> None:
     if not PROCESSED_MANIFEST_PATH.exists():
         raise FileNotFoundError(f"missing processed manifest: {PROCESSED_MANIFEST_PATH}")
 
+    if not PROCESSED_SUCCESSFUL_MANIFEST_PATH.exists():
+        raise FileNotFoundError(
+            f"missing successful processed manifest: {PROCESSED_SUCCESSFUL_MANIFEST_PATH}"
+        )
+
     data = np.load(PROCESSED_NPZ_PATH)
-    manifest = pd.read_csv(PROCESSED_MANIFEST_PATH)
+    attempted_manifest = pd.read_csv(PROCESSED_MANIFEST_PATH)
+    manifest = pd.read_csv(PROCESSED_SUCCESSFUL_MANIFEST_PATH)
 
     missing = [name for name in REQUIRED_ARRAYS if name not in data.files]
     if missing:
@@ -84,15 +91,27 @@ def main() -> None:
     assert_finite("feature_means", data["feature_means"])
     assert_finite("feature_stds", data["feature_stds"])
 
-    successful_manifest_rows = manifest[manifest["processed_ok"] == True]
-    if len(successful_manifest_rows) != n:
+    if "processed_ok" in manifest.columns:
+        successful_mask = manifest["processed_ok"].astype(str).str.lower().isin(
+            ["true", "1", "yes"]
+        )
+
+        if not successful_mask.all():
+            raise ValueError(
+                "processed_successful_manifest contains rows where processed_ok is false"
+            )
+
+    if len(manifest) != n:
         raise ValueError(
-            "successful processed_manifest rows do not match .npz rows: "
-            f"{len(successful_manifest_rows)} vs {n}"
+            "processed_successful_manifest rows do not match .npz rows: "
+            f"{len(manifest)} vs {n}"
         )
 
     print("processed_dataset:", PROCESSED_NPZ_PATH)
-    print("processed_manifest:", PROCESSED_MANIFEST_PATH)
+    print("processed_attempted_manifest:", PROCESSED_MANIFEST_PATH)
+    print("processed_successful_manifest:", PROCESSED_SUCCESSFUL_MANIFEST_PATH)
+    print("attempted_manifest_rows:", len(attempted_manifest))
+    print("successful_manifest_rows:", len(manifest))
     print("N:", n)
     print("global_view_shape:", global_view.shape)
     print("local_view_shape:", local_view.shape)
@@ -104,7 +123,7 @@ def main() -> None:
     print()
     print("clean point summary:")
     print(
-        successful_manifest_rows[
+        manifest[
             [
                 "n_fits_files",
                 "n_raw_points",

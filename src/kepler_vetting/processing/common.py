@@ -13,6 +13,7 @@ RAW_LIGHTCURVE_ROOT = Path("data/raw/lightcurves")
 PROCESSED_DIR = Path("data/processed")
 PROCESSED_NPZ_PATH = PROCESSED_DIR / "kepler_q1_q17_dr25_sample.npz"
 PROCESSED_MANIFEST_PATH = PROCESSED_DIR / "processed_manifest.csv"
+PROCESSED_SUCCESSFUL_MANIFEST_PATH = PROCESSED_DIR / "processed_successful_manifest.csv"
 MODEL_READINESS_REPORT_PATH = PROCESSED_DIR / "model_readiness_report.csv"
 MODEL_READY_MANIFEST_PATH = PROCESSED_DIR / "model_ready_manifest.csv"
 MODEL_READY_NPZ_PATH = PROCESSED_DIR / "kepler_q1_q17_dr25_model_ready.npz"

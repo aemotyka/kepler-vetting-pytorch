@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from kepler_vetting.modeling.thresholds import (
@@ -10,6 +11,7 @@ from kepler_vetting.modeling.thresholds import (
     evaluate_binary_scores,
     select_best_f1_threshold,
 )
+from kepler_vetting.processing.common import MODEL_READY_NPZ_PATH
 
 
 METRICS_DIR = Path("outputs/metrics")
@@ -97,6 +99,16 @@ SPLIT_ORDER = {
     "train": 2,
 }
 
+REQUIRED_PREDICTION_COLUMNS = {
+    "model",
+    "seed",
+    "split",
+    "row_index",
+    "kepid",
+    "kepoi_name",
+    "y_true",
+    "planet_like_score",
+}
 
 SUMMARY_COLUMNS = [
     "threshold",
@@ -131,7 +143,63 @@ COMPACT_COLUMNS = [
 ]
 
 
-def load_predictions(path: Path, family: str, models: list[str]) -> pd.DataFrame:
+def load_current_model_ready_dataset() -> dict[str, np.ndarray]:
+    if not MODEL_READY_NPZ_PATH.exists():
+        raise FileNotFoundError(
+            f"missing model-ready dataset: {MODEL_READY_NPZ_PATH}. "
+            "Run kepler_vetting.processing.filter_model_ready_dataset first."
+        )
+
+    data = np.load(MODEL_READY_NPZ_PATH)
+
+    required_arrays = [
+        "labels",
+        "kepid",
+        "kepoi_name",
+    ]
+
+    missing = [
+        name
+        for name in required_arrays
+        if name not in data.files
+    ]
+
+    if missing:
+        raise ValueError(
+            f"{MODEL_READY_NPZ_PATH} is missing required arrays: {missing}"
+        )
+
+    labels = data["labels"].astype(int)
+    kepid = data["kepid"].astype(int)
+    kepoi_name = data["kepoi_name"].astype(str)
+
+    n_rows = labels.shape[0]
+
+    if kepid.shape[0] != n_rows:
+        raise ValueError(
+            "model-ready kepid row count does not match labels: "
+            f"{kepid.shape[0]} vs {n_rows}"
+        )
+
+    if kepoi_name.shape[0] != n_rows:
+        raise ValueError(
+            "model-ready kepoi_name row count does not match labels: "
+            f"{kepoi_name.shape[0]} vs {n_rows}"
+        )
+
+    return {
+        "labels": labels,
+        "kepid": kepid,
+        "kepoi_name": kepoi_name,
+    }
+
+
+def load_predictions(
+    path: Path,
+    family: str,
+    models: list[str],
+    current_dataset: dict[str, np.ndarray],
+) -> pd.DataFrame:
     if not path.exists():
         raise FileNotFoundError(
             f"missing predictions file: {path}. "
@@ -141,15 +209,7 @@ def load_predictions(path: Path, family: str, models: list[str]) -> pd.DataFrame
     frame = pd.read_csv(path)
     frame["family"] = family
 
-    required_columns = {
-        "model",
-        "seed",
-        "split",
-        "y_true",
-        "planet_like_score",
-    }
-
-    missing = required_columns - set(frame.columns)
+    missing = REQUIRED_PREDICTION_COLUMNS - set(frame.columns)
     if missing:
         raise ValueError(
             f"{path} is missing required columns: {sorted(missing)}"
@@ -162,15 +222,144 @@ def load_predictions(path: Path, family: str, models: list[str]) -> pd.DataFrame
             f"{path} did not contain any requested models: {models}"
         )
 
+    missing_models = sorted(set(models) - set(frame["model"].unique()))
+    if missing_models:
+        raise ValueError(
+            f"{path} is missing requested models: {missing_models}"
+        )
+
+    validate_predictions_against_current_dataset(
+        frame=frame,
+        path=path,
+        models=models,
+        current_dataset=current_dataset,
+    )
+
     return frame
 
 
+def validate_predictions_against_current_dataset(
+    frame: pd.DataFrame,
+    path: Path,
+    models: list[str],
+    current_dataset: dict[str, np.ndarray],
+) -> None:
+    labels = current_dataset["labels"]
+    kepid = current_dataset["kepid"]
+    kepoi_name = current_dataset["kepoi_name"]
+
+    n_rows = labels.shape[0]
+    expected_row_index = np.arange(n_rows)
+
+    bad_splits = sorted(set(frame["split"].astype(str)) - set(SPLIT_ORDER))
+    if bad_splits:
+        raise ValueError(
+            f"{path} contains unknown split names: {bad_splits}"
+        )
+
+    for model in models:
+        model_frame = frame[frame["model"] == model]
+
+        if model_frame.empty:
+            raise ValueError(f"{path} has no rows for model={model}")
+
+        for seed, group in model_frame.groupby("seed"):
+            if len(group) != n_rows:
+                raise ValueError(
+                    f"{path} appears stale or incomplete for "
+                    f"model={model}, seed={seed}: "
+                    f"found {len(group)} prediction rows, expected {n_rows}. "
+                    "Rerun the corresponding training script against the current "
+                    "model-ready dataset."
+                )
+
+            row_index_values = pd.to_numeric(
+                group["row_index"],
+                errors="coerce",
+            )
+
+            if row_index_values.isna().any():
+                raise ValueError(
+                    f"{path} contains non-numeric row_index values for "
+                    f"model={model}, seed={seed}"
+                )
+
+            row_index = row_index_values.astype(int).to_numpy()
+
+            if np.any(row_index < 0) or np.any(row_index >= n_rows):
+                raise ValueError(
+                    f"{path} contains row_index values outside the current "
+                    f"dataset range for model={model}, seed={seed}"
+                )
+
+            if len(np.unique(row_index)) != n_rows:
+                raise ValueError(
+                    f"{path} contains duplicate or missing row_index values for "
+                    f"model={model}, seed={seed}"
+                )
+
+            if not np.array_equal(np.sort(row_index), expected_row_index):
+                raise ValueError(
+                    f"{path} does not cover exactly the current model-ready "
+                    f"dataset rows for model={model}, seed={seed}"
+                )
+
+            y_true = pd.to_numeric(
+                group["y_true"],
+                errors="coerce",
+            )
+
+            if y_true.isna().any():
+                raise ValueError(
+                    f"{path} contains non-numeric y_true values for "
+                    f"model={model}, seed={seed}"
+                )
+
+            y_true_array = y_true.astype(int).to_numpy()
+            if not np.array_equal(y_true_array, labels[row_index]):
+                raise ValueError(
+                    f"{path} y_true values do not match the current "
+                    f"model-ready labels for model={model}, seed={seed}. "
+                    "Rerun the corresponding training script."
+                )
+
+            kepid_values = pd.to_numeric(
+                group["kepid"],
+                errors="coerce",
+            )
+
+            if kepid_values.isna().any():
+                raise ValueError(
+                    f"{path} contains non-numeric kepid values for "
+                    f"model={model}, seed={seed}"
+                )
+
+            kepid_array = kepid_values.astype(int).to_numpy()
+            if not np.array_equal(kepid_array, kepid[row_index]):
+                raise ValueError(
+                    f"{path} kepid values do not match the current "
+                    f"model-ready dataset for model={model}, seed={seed}. "
+                    "Rerun the corresponding training script."
+                )
+
+            kepoi_array = group["kepoi_name"].astype(str).to_numpy()
+            if not np.array_equal(kepoi_array, kepoi_name[row_index]):
+                raise ValueError(
+                    f"{path} kepoi_name values do not match the current "
+                    f"model-ready dataset for model={model}, seed={seed}. "
+                    "Rerun the corresponding training script."
+                )
+
+
 def load_all_predictions() -> pd.DataFrame:
+    current_dataset = load_current_model_ready_dataset()
+
     frames = [
         load_predictions(
             path=source["path"],
             family=source["family"],
             models=source["models"],
+            current_dataset=current_dataset,
         )
         for source in PREDICTION_SOURCES
     ]
@@ -190,6 +379,13 @@ def load_all_predictions() -> pd.DataFrame:
             ].unique()
         )
         raise ValueError(f"missing display names for models: {missing}")
+
+    print(
+        "validated prediction files against current model-ready dataset:",
+        MODEL_READY_NPZ_PATH,
+    )
+    print("current_model_ready_rows:", current_dataset["labels"].shape[0])
+    print()
 
     return predictions
 

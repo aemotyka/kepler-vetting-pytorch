@@ -12,6 +12,7 @@ from kepler_vetting.processing.common import (
     PROCESSED_DIR,
     PROCESSED_MANIFEST_PATH,
     PROCESSED_NPZ_PATH,
+    PROCESSED_SUCCESSFUL_MANIFEST_PATH,
     TABULAR_FEATURES,
     local_fits_paths_for_row,
     local_window_half_width,
@@ -164,10 +165,22 @@ def main() -> None:
             processed_payloads.append(payload)
 
     processed_manifest = pd.DataFrame(processed_records)
+    successful_processed_manifest = (
+        processed_manifest[processed_manifest["processed_ok"]]
+        .reset_index(drop=True)
+    )
+
     processed_manifest.to_csv(PROCESSED_MANIFEST_PATH, index=False)
+    successful_processed_manifest.to_csv(PROCESSED_SUCCESSFUL_MANIFEST_PATH, index=False)
 
     if not processed_payloads:
         raise RuntimeError("no KOIs processed successfully")
+
+    if len(successful_processed_manifest) != len(processed_payloads):
+        raise RuntimeError(
+            "successful processed manifest rows do not match processed payloads: "
+            f"{len(successful_processed_manifest)} vs {len(processed_payloads)}"
+        )
 
     tabular_rows = [payload["tabular_raw"] for payload in processed_payloads]
     tabular = transform_tabular_features(tabular_rows)
@@ -231,6 +244,7 @@ def main() -> None:
     print()
     print("wrote:", PROCESSED_NPZ_PATH)
     print("wrote:", PROCESSED_MANIFEST_PATH)
+    print("wrote:", PROCESSED_SUCCESSFUL_MANIFEST_PATH)
     print("successful_rows:", len(processed_payloads))
     print("failed_rows:", int((~processed_manifest["processed_ok"]).sum()))
     print("global_view_shape:", global_view.shape)
