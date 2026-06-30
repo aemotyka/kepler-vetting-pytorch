@@ -357,8 +357,24 @@ def main() -> None:
 
         seed_frame["stacked_score"] = seed_scores
 
+        full_seed_frame = seed_frame.sort_values("row_index").copy()
+        expected_row_index = np.arange(full_seed_frame.shape[0])
+
+        if not np.array_equal(
+            full_seed_frame["row_index"].to_numpy(dtype=int),
+            expected_row_index,
+        ):
+            raise ValueError(
+                f"seed={seed} row_index is not contiguous after sorting"
+            )
+
+        full_kepid = full_seed_frame["kepid"].to_numpy(dtype=int)
+        full_kepoi_name = full_seed_frame["kepoi_name"].astype(str).to_numpy()
+        full_disposition = full_seed_frame["disposition"].astype(str).to_numpy()
+
         for split_name, split_frame in seed_frame.groupby("split"):
             split_frame = split_frame.sort_values("row_index").copy()
+            indices = split_frame["row_index"].to_numpy(dtype=int)
             scores = split_frame["stacked_score"].to_numpy(dtype=float)
             targets = split_frame["y_true"].to_numpy(dtype=int)
 
@@ -378,12 +394,12 @@ def main() -> None:
                     model_name=MODEL_NAME,
                     seed=seed,
                     split_name=split_name,
-                    indices=split_frame["row_index"].to_numpy(dtype=int),
+                    indices=indices,
                     y_true=targets,
                     y_score=scores,
-                    kepid=split_frame["kepid"].to_numpy(dtype=int),
-                    kepoi_name=split_frame["kepoi_name"].astype(str).to_numpy(),
-                    disposition=split_frame["disposition"].astype(str).to_numpy(),
+                    kepid=full_kepid,
+                    kepoi_name=full_kepoi_name,
+                    disposition=full_disposition,
                 )
             )
 
