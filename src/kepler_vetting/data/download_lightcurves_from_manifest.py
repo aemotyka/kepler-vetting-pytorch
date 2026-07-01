@@ -91,6 +91,13 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--manifest-path",
+        type=Path,
+        default=MANIFEST_PATH,
+        help=f"Manifest CSV path. Default: {MANIFEST_PATH}",
+    )
+
+    parser.add_argument(
         "--verbose",
         action="store_true",
         help="Print each skipped/downloaded FITS file. By default, only show progress and summary.",
@@ -102,10 +109,12 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
 
-    if not MANIFEST_PATH.exists():
-        raise FileNotFoundError(f"Missing manifest: {MANIFEST_PATH}")
+    if not args.manifest_path.exists():
+        raise FileNotFoundError(f"Missing manifest: {args.manifest_path}")
 
-    manifest = pd.read_csv(MANIFEST_PATH)
+    print("manifest_path:", args.manifest_path)
+
+    manifest = pd.read_csv(args.manifest_path)
     tasks = manifest_tasks(manifest)
 
     attempted = 0

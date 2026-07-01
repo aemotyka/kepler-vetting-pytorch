@@ -28,13 +28,15 @@ from kepler_vetting.modeling.train_tabular_baseline import (
 from kepler_vetting.processing.common import (
     MODEL_READY_MANIFEST_PATH,
     MODEL_READY_NPZ_PATH,
+    RUN_METRICS_DIR,
+    RUN_MODEL_DIR,
 )
 
 
 MODEL_NAME = "tabular_local_features_logistic_regression"
 
-METRICS_DIR = Path("outputs/metrics")
-MODEL_DIR = Path("artifacts/models")
+METRICS_DIR = RUN_METRICS_DIR
+MODEL_DIR = RUN_MODEL_DIR
 
 PER_SEED_METRICS_PATH = METRICS_DIR / "tabular_local_features_metrics_by_seed.csv"
 SUMMARY_METRICS_PATH = METRICS_DIR / "tabular_local_features_metrics_summary.csv"

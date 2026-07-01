@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
+import re
 from typing import Any
 
 import numpy as np
@@ -8,15 +10,88 @@ import pandas as pd
 from astropy.io import fits
 
 
-MANIFEST_PATH = Path("data/metadata/lightcurve_manifest.csv")
-RAW_LIGHTCURVE_ROOT = Path("data/raw/lightcurves")
-PROCESSED_DIR = Path("data/processed")
-PROCESSED_NPZ_PATH = PROCESSED_DIR / "kepler_q1_q17_dr25_sample.npz"
-PROCESSED_MANIFEST_PATH = PROCESSED_DIR / "processed_manifest.csv"
-PROCESSED_SUCCESSFUL_MANIFEST_PATH = PROCESSED_DIR / "processed_successful_manifest.csv"
-MODEL_READINESS_REPORT_PATH = PROCESSED_DIR / "model_readiness_report.csv"
-MODEL_READY_MANIFEST_PATH = PROCESSED_DIR / "model_ready_manifest.csv"
-MODEL_READY_NPZ_PATH = PROCESSED_DIR / "kepler_q1_q17_dr25_model_ready.npz"
+def configured_dataset_tag() -> str:
+    tag = os.environ.get("KEPLER_VETTING_DATASET_TAG", "").strip()
+
+    if not tag:
+        return ""
+
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+", tag):
+        raise ValueError(
+            "KEPLER_VETTING_DATASET_TAG may only contain letters, numbers, "
+            f"underscore, dash, or dot; got {tag!r}"
+        )
+
+    return tag
+
+
+def env_path(name: str, default: Path) -> Path:
+    raw_value = os.environ.get(name, "").strip()
+
+    if raw_value:
+        return Path(raw_value)
+
+    return default
+
+
+def tagged_file(directory: Path, filename: str) -> Path:
+    path = Path(filename)
+
+    if not DATASET_TAG:
+        return directory / path.name
+
+    return directory / f"{path.stem}_{DATASET_TAG}{path.suffix}"
+
+
+DATASET_TAG = configured_dataset_tag()
+
+RAW_LIGHTCURVE_ROOT = env_path(
+    "KEPLER_VETTING_RAW_LIGHTCURVE_ROOT",
+    Path("data/raw/lightcurves"),
+)
+PROCESSED_DIR = env_path(
+    "KEPLER_VETTING_PROCESSED_DIR",
+    Path("data/processed"),
+)
+
+MANIFEST_PATH = env_path(
+    "KEPLER_VETTING_MANIFEST_PATH",
+    tagged_file(Path("data/metadata"), "lightcurve_manifest.csv"),
+)
+
+PROCESSED_NPZ_PATH = tagged_file(
+    PROCESSED_DIR,
+    "kepler_q1_q17_dr25_sample.npz",
+)
+PROCESSED_MANIFEST_PATH = tagged_file(
+    PROCESSED_DIR,
+    "processed_manifest.csv",
+)
+PROCESSED_SUCCESSFUL_MANIFEST_PATH = tagged_file(
+    PROCESSED_DIR,
+    "processed_successful_manifest.csv",
+)
+MODEL_READINESS_REPORT_PATH = tagged_file(
+    PROCESSED_DIR,
+    "model_readiness_report.csv",
+)
+MODEL_READY_MANIFEST_PATH = tagged_file(
+    PROCESSED_DIR,
+    "model_ready_manifest.csv",
+)
+MODEL_READY_NPZ_PATH = tagged_file(
+    PROCESSED_DIR,
+    "kepler_q1_q17_dr25_model_ready.npz",
+)
+
+RUN_METRICS_DIR = env_path(
+    "KEPLER_VETTING_METRICS_DIR",
+    Path("outputs/metrics") / DATASET_TAG if DATASET_TAG else Path("outputs/metrics"),
+)
+RUN_MODEL_DIR = env_path(
+    "KEPLER_VETTING_MODEL_DIR",
+    Path("artifacts/models") / DATASET_TAG if DATASET_TAG else Path("artifacts/models"),
+)
 
 MODEL_READY_MIN_CLEAN_POINTS = 5000
 MODEL_READY_MIN_FITS_FILES = 2
