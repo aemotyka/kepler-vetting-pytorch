@@ -12,11 +12,12 @@ from kepler_vetting.processing.common import (
     MODEL_READINESS_REPORT_PATH,
     PROCESSED_DIR,
     PROCESSED_NPZ_PATH,
+    MODEL_READY_EXCLUDED_ROWS_PATH,
 )
 from kepler_vetting.processing.model_readiness import build_model_readiness_report
 
 
-EXCLUDED_ROWS_PATH = PROCESSED_DIR / "model_ready_excluded_rows.csv"
+EXCLUDED_ROWS_PATH = MODEL_READY_EXCLUDED_ROWS_PATH
 
 EXCLUDED_ROW_COLUMNS = [
     "kepid",

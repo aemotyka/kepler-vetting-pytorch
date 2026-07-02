@@ -83,6 +83,10 @@ MODEL_READY_NPZ_PATH = tagged_file(
     PROCESSED_DIR,
     "kepler_q1_q17_dr25_model_ready.npz",
 )
+MODEL_READY_EXCLUDED_ROWS_PATH = tagged_file(
+    PROCESSED_DIR,
+    "model_ready_excluded_rows.csv",
+)
 
 RUN_METRICS_DIR = env_path(
     "KEPLER_VETTING_METRICS_DIR",
