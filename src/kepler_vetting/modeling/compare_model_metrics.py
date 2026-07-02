@@ -11,10 +11,9 @@ from kepler_vetting.modeling.thresholds import (
     evaluate_binary_scores,
     select_best_f1_threshold,
 )
-from kepler_vetting.processing.common import MODEL_READY_NPZ_PATH
+from kepler_vetting.processing.common import MODEL_READY_NPZ_PATH, RUN_METRICS_DIR
 
-
-METRICS_DIR = Path("outputs/metrics")
+METRICS_DIR = RUN_METRICS_DIR
 
 TABULAR_PREDICTIONS_PATH = METRICS_DIR / "tabular_baseline_predictions.csv"
 TABULAR_LOCAL_FEATURES_PREDICTIONS_PATH = (
@@ -25,6 +24,9 @@ GLOBAL_LIGHTCURVE_PREDICTIONS_PATH = METRICS_DIR / "global_lightcurve_cnn_predic
 FUSED_LOCAL_PREDICTIONS_PATH = METRICS_DIR / "fused_local_model_predictions.csv"
 FUSED_LOCAL_FEATURES_PREDICTIONS_PATH = (
     METRICS_DIR / "fused_local_features_model_predictions.csv"
+)
+FUSED_RESIDUAL_LOCAL_PREDICTIONS_PATH = (
+    METRICS_DIR / "fused_residual_local_model_predictions.csv"
 )
 STACKED_SCORE_PREDICTIONS_PATH = METRICS_DIR / "stacked_score_model_predictions.csv"
 
@@ -77,6 +79,13 @@ PREDICTION_SOURCES = [
         ],
     },
     {
+        "family": "fused_residual_local",
+        "path": FUSED_RESIDUAL_LOCAL_PREDICTIONS_PATH,
+        "models": [
+            "fused_tabular_residual_local_cnn",
+        ],
+    },
+    {
         "family": "stacked_score",
         "path": STACKED_SCORE_PREDICTIONS_PATH,
         "models": [
@@ -96,6 +105,7 @@ DISPLAY_NAMES = {
     "global_view_cnn": "global_view_cnn",
     "fused_tabular_local_cnn": "fused_tabular_local_cnn",
     "fused_tabular_local_features_cnn": "fused_tabular_local_features_cnn",
+    "fused_tabular_residual_local_cnn": "fused_tabular_residual_local_cnn",
     "stacked_score_logistic_regression": "stacked_score_logistic_regression",
 }
 
@@ -107,7 +117,8 @@ MODEL_ORDER = {
     "global_view_cnn": 4,
     "fused_tabular_local_cnn": 5,
     "fused_tabular_local_features_cnn": 6,
-    "stacked_score_logistic_regression": 7,
+    "fused_tabular_residual_local_cnn": 7,
+    "stacked_score_logistic_regression": 8,
 }
 
 METRIC_VARIANT_ORDER = {

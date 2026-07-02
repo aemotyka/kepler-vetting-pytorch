@@ -18,10 +18,11 @@ from kepler_vetting.modeling.thresholds import (
 from kepler_vetting.processing.common import (
     MODEL_READY_MANIFEST_PATH,
     MODEL_READY_NPZ_PATH,
+    RUN_METRICS_DIR,
 )
 
 
-METRICS_DIR = Path("outputs/metrics")
+METRICS_DIR = RUN_METRICS_DIR
 
 MODEL_COMPARISON_BY_SEED_PATH = METRICS_DIR / "model_comparison_by_seed.csv"
 
@@ -34,6 +35,9 @@ GLOBAL_CNN_PREDICTIONS_PATH = METRICS_DIR / "global_lightcurve_cnn_predictions.c
 FUSED_PREDICTIONS_PATH = METRICS_DIR / "fused_local_model_predictions.csv"
 FUSED_LOCAL_FEATURES_PREDICTIONS_PATH = (
     METRICS_DIR / "fused_local_features_model_predictions.csv"
+)
+FUSED_RESIDUAL_LOCAL_PREDICTIONS_PATH = (
+    METRICS_DIR / "fused_residual_local_model_predictions.csv"
 )
 STACKED_SCORE_PREDICTIONS_PATH = METRICS_DIR / "stacked_score_model_predictions.csv"
 
@@ -214,6 +218,11 @@ MODEL_SPECS = {
         model_name="fused_tabular_local_features_cnn",
         predictions_path=FUSED_LOCAL_FEATURES_PREDICTIONS_PATH,
     ),
+    "fused_tabular_residual_local_cnn": ModelSpec(
+        display_model="fused_tabular_residual_local_cnn",
+        model_name="fused_tabular_residual_local_cnn",
+        predictions_path=FUSED_RESIDUAL_LOCAL_PREDICTIONS_PATH,
+    ),
     "stacked_score_logistic_regression": ModelSpec(
         display_model="stacked_score_logistic_regression",
         model_name="stacked_score_logistic_regression",
@@ -248,6 +257,26 @@ PAIR_SPECS = [
         right=MODEL_SPECS["fused_tabular_local_features_cnn"],
     ),
     PairSpec(
+        pair_id="tabular_vs_fused_residual_local",
+        left=MODEL_SPECS["tabular_logistic_regression"],
+        right=MODEL_SPECS["fused_tabular_residual_local_cnn"],
+    ),
+    PairSpec(
+        pair_id="tabular_local_features_vs_fused_residual_local",
+        left=MODEL_SPECS["tabular_local_features_logistic_regression"],
+        right=MODEL_SPECS["fused_tabular_residual_local_cnn"],
+    ),
+    PairSpec(
+        pair_id="fused_vs_fused_residual_local",
+        left=MODEL_SPECS["fused_tabular_local_cnn"],
+        right=MODEL_SPECS["fused_tabular_residual_local_cnn"],
+    ),
+    PairSpec(
+        pair_id="fused_local_features_vs_fused_residual_local",
+        left=MODEL_SPECS["fused_tabular_local_features_cnn"],
+        right=MODEL_SPECS["fused_tabular_residual_local_cnn"],
+    ),
+    PairSpec(
         pair_id="tabular_local_features_vs_stacked",
         left=MODEL_SPECS["tabular_local_features_logistic_regression"],
         right=MODEL_SPECS["stacked_score_logistic_regression"],
@@ -260,6 +289,11 @@ PAIR_SPECS = [
     PairSpec(
         pair_id="fused_local_features_vs_stacked",
         left=MODEL_SPECS["fused_tabular_local_features_cnn"],
+        right=MODEL_SPECS["stacked_score_logistic_regression"],
+    ),
+    PairSpec(
+        pair_id="fused_residual_local_vs_stacked",
+        left=MODEL_SPECS["fused_tabular_residual_local_cnn"],
         right=MODEL_SPECS["stacked_score_logistic_regression"],
     ),
     PairSpec(
@@ -1041,8 +1075,8 @@ def main() -> None:
         columns=SUMMARY_COLUMNS,
     )
 
-    strict_pair = "fused_vs_stacked"
-    
+    strict_pair = "fused_vs_fused_residual_local"
+        
     strict_changed = changed[
         (changed["pair_id"] == strict_pair)
         & (changed["split"] == "test")
