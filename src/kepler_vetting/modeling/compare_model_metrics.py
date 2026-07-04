@@ -160,6 +160,7 @@ DISPLAY_NAMES = {
     "fused_tabular_multiscale_local_cnn": "fused_tabular_multiscale_local_cnn",
     "fused_tabular_transit_set_cnn": "fused_tabular_transit_set_cnn",
     "fused_tabular_local_transit_set_cnn": "fused_tabular_local_transit_set_cnn",
+    "rescue_stacked_logistic_regression": "rescue_stacked_logistic_regression",
     "selective_rescue_rule_model": "selective_rescue_rule_model",
 }
 
