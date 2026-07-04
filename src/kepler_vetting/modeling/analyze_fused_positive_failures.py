@@ -75,6 +75,11 @@ OTHER_MODEL_SPECS = [
         "model_name": "fused_tabular_residual_local_cnn",
         "path": METRICS_DIR / "fused_residual_local_model_predictions.csv",
     },
+    {
+        "display_model": "fused_tabular_multiscale_local_cnn",
+        "model_name": "fused_tabular_multiscale_local_cnn",
+        "path": METRICS_DIR / "fused_multiscale_local_model_predictions.csv",
+    },
 ]
 
 REQUIRED_PREDICTION_COLUMNS = {

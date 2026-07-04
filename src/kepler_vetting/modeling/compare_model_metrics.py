@@ -28,6 +28,9 @@ FUSED_LOCAL_FEATURES_PREDICTIONS_PATH = (
 FUSED_RESIDUAL_LOCAL_PREDICTIONS_PATH = (
     METRICS_DIR / "fused_residual_local_model_predictions.csv"
 )
+FUSED_MULTISCALE_LOCAL_PREDICTIONS_PATH = (
+    METRICS_DIR / "fused_multiscale_local_model_predictions.csv"
+)
 STACKED_SCORE_PREDICTIONS_PATH = METRICS_DIR / "stacked_score_model_predictions.csv"
 
 COMPARISON_BY_SEED_PATH = METRICS_DIR / "model_comparison_by_seed.csv"
@@ -86,6 +89,13 @@ PREDICTION_SOURCES = [
         ],
     },
     {
+        "family": "fused_multiscale_local",
+        "path": FUSED_MULTISCALE_LOCAL_PREDICTIONS_PATH,
+        "models": [
+            "fused_tabular_multiscale_local_cnn",
+        ],
+    },
+    {
         "family": "stacked_score",
         "path": STACKED_SCORE_PREDICTIONS_PATH,
         "models": [
@@ -107,6 +117,7 @@ DISPLAY_NAMES = {
     "fused_tabular_local_features_cnn": "fused_tabular_local_features_cnn",
     "fused_tabular_residual_local_cnn": "fused_tabular_residual_local_cnn",
     "stacked_score_logistic_regression": "stacked_score_logistic_regression",
+    "fused_tabular_multiscale_local_cnn": "fused_tabular_multiscale_local_cnn",
 }
 
 MODEL_ORDER = {
@@ -118,7 +129,8 @@ MODEL_ORDER = {
     "fused_tabular_local_cnn": 5,
     "fused_tabular_local_features_cnn": 6,
     "fused_tabular_residual_local_cnn": 7,
-    "stacked_score_logistic_regression": 8,
+    "fused_tabular_multiscale_local_cnn": 8,
+    "stacked_score_logistic_regression": 9,
 }
 
 METRIC_VARIANT_ORDER = {
