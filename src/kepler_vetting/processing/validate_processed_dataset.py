@@ -6,9 +6,11 @@ import pandas as pd
 from kepler_vetting.processing.common import (
     GLOBAL_BINS,
     LOCAL_BINS,
+    MAX_TRANSIT_WINDOWS,
     PROCESSED_MANIFEST_PATH,
     PROCESSED_NPZ_PATH,
     PROCESSED_SUCCESSFUL_MANIFEST_PATH,
+    TRANSIT_BINS,
 )
 
 
@@ -23,6 +25,15 @@ REQUIRED_ARRAYS = [
     "kepoi_name",
     "disposition",
     "local_window_half_width",
+    "local_phase_narrow",
+    "local_view_narrow",
+    "local_phase_wide",
+    "local_view_wide",
+    "local_window_half_width_narrow",
+    "local_window_half_width_wide",
+    "transit_view",
+    "transit_mask",
+    "transit_count",
     "feature_names",
     "feature_medians",
     "feature_means",
@@ -71,6 +82,43 @@ def main() -> None:
 
     if data["local_phase"].shape != (n, LOCAL_BINS):
         raise ValueError(f"local_phase has bad shape: {data['local_phase'].shape}")
+    
+    if data["local_view_narrow"].shape != (n, LOCAL_BINS):
+        raise ValueError(
+            f"local_view_narrow has bad shape: {data['local_view_narrow'].shape}"
+        )
+
+    if data["local_view_wide"].shape != (n, LOCAL_BINS):
+        raise ValueError(
+            f"local_view_wide has bad shape: {data['local_view_wide'].shape}"
+        )
+
+    if data["local_phase_narrow"].shape != (n, LOCAL_BINS):
+        raise ValueError(
+            f"local_phase_narrow has bad shape: {data['local_phase_narrow'].shape}"
+        )
+
+    if data["local_phase_wide"].shape != (n, LOCAL_BINS):
+        raise ValueError(
+            f"local_phase_wide has bad shape: {data['local_phase_wide'].shape}"
+        )
+
+    if data["transit_view"].shape != (n, MAX_TRANSIT_WINDOWS, TRANSIT_BINS):
+        raise ValueError(f"transit_view has bad shape: {data['transit_view'].shape}")
+
+    if data["transit_mask"].shape != (n, MAX_TRANSIT_WINDOWS):
+        raise ValueError(f"transit_mask has bad shape: {data['transit_mask'].shape}")
+
+    if data["transit_count"].shape != (n,):
+        raise ValueError(f"transit_count has bad shape: {data['transit_count'].shape}")
+
+    transit_mask_counts = data["transit_mask"].sum(axis=1).astype(np.int64)
+
+    if not np.array_equal(transit_mask_counts, data["transit_count"].astype(np.int64)):
+        raise ValueError("transit_count does not match transit_mask row sums")
+
+    if int(data["transit_count"].min()) <= 0:
+        raise ValueError("every processed row must have at least one transit window")
 
     if tabular_features.shape[0] != n:
         raise ValueError(
@@ -85,6 +133,14 @@ def main() -> None:
     assert_finite("global_view", global_view)
     assert_finite("local_view", local_view)
     assert_finite("local_phase", data["local_phase"])
+    assert_finite("local_view_narrow", data["local_view_narrow"])
+    assert_finite("local_view_wide", data["local_view_wide"])
+    assert_finite("local_phase_narrow", data["local_phase_narrow"])
+    assert_finite("local_phase_wide", data["local_phase_wide"])
+    assert_finite("local_window_half_width_narrow", data["local_window_half_width_narrow"])
+    assert_finite("local_window_half_width_wide", data["local_window_half_width_wide"])
+    assert_finite("transit_view", data["transit_view"])
+    assert_finite("transit_count", data["transit_count"])
     assert_finite("tabular_features", tabular_features)
     assert_finite("local_window_half_width", data["local_window_half_width"])
     assert_finite("feature_medians", data["feature_medians"])
@@ -115,6 +171,12 @@ def main() -> None:
     print("N:", n)
     print("global_view_shape:", global_view.shape)
     print("local_view_shape:", local_view.shape)
+    print("local_view_narrow_shape:", data["local_view_narrow"].shape)
+    print("local_view_wide_shape:", data["local_view_wide"].shape)
+    print("transit_view_shape:", data["transit_view"].shape)
+    print("transit_mask_shape:", data["transit_mask"].shape)
+    print("transit_count_summary:")
+    print(pd.Series(data["transit_count"]).describe())
     print("tabular_features_shape:", tabular_features.shape)
     print("feature_names:", data["feature_names"].tolist())
     print()

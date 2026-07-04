@@ -7,6 +7,7 @@ import pandas as pd
 
 from kepler_vetting.processing.common import (
     GLOBAL_BINS,
+    MAX_TRANSIT_WINDOWS,
     LOCAL_BINS,
     MANIFEST_PATH,
     PROCESSED_DIR,
@@ -14,6 +15,7 @@ from kepler_vetting.processing.common import (
     PROCESSED_NPZ_PATH,
     PROCESSED_SUCCESSFUL_MANIFEST_PATH,
     TABULAR_FEATURES,
+    TRANSIT_BINS,
     local_fits_paths_for_row,
     local_window_half_width,
     median_bin,
@@ -43,15 +45,18 @@ def scaled_local_half_width(base_half_width: float, scale: float) -> float:
     return float(min(0.5, max(MIN_AUX_LOCAL_HALF_WIDTH, base_half_width * scale)))
 
 
-def empty_local_bin(half_width: float) -> tuple[np.ndarray, np.ndarray, float]:
+def empty_phase_bin(
+    half_width: float,
+    n_bins: int,
+) -> tuple[np.ndarray, np.ndarray, float]:
     edges = np.linspace(
         -half_width,
         half_width,
-        LOCAL_BINS + 1,
+        n_bins + 1,
         dtype=np.float64,
     )
     centers = 0.5 * (edges[:-1] + edges[1:])
-    values = np.zeros(LOCAL_BINS, dtype=np.float32)
+    values = np.zeros(n_bins, dtype=np.float32)
 
     return centers.astype(np.float32), values, 1.0
 
@@ -60,6 +65,7 @@ def median_bin_or_empty(
     phase: np.ndarray,
     flux: np.ndarray,
     half_width: float,
+    n_bins: int = LOCAL_BINS,
 ) -> tuple[np.ndarray, np.ndarray, float]:
     try:
         return median_bin(
@@ -67,7 +73,7 @@ def median_bin_or_empty(
             flux,
             x_min=-half_width,
             x_max=half_width,
-            n_bins=LOCAL_BINS,
+            n_bins=n_bins,
         )
     except ValueError as exc:
         message = str(exc)
@@ -75,7 +81,132 @@ def median_bin_or_empty(
         if "no points in bin range" not in message and "all bins are empty" not in message:
             raise
 
-        return empty_local_bin(half_width)
+        return empty_phase_bin(
+            half_width=half_width,
+            n_bins=n_bins,
+        )
+
+
+def evenly_spaced_indices(n_items: int, max_items: int) -> np.ndarray:
+    if n_items <= max_items:
+        return np.arange(n_items, dtype=int)
+
+    return np.unique(
+        np.linspace(
+            0,
+            n_items - 1,
+            max_items,
+            dtype=int,
+        )
+    )
+
+
+def transit_centers_in_observed_window(
+    time: np.ndarray,
+    period: float,
+    epoch: float,
+    half_width_phase: float,
+) -> np.ndarray:
+    if not np.isfinite(period) or period <= 0:
+        raise ValueError(f"invalid period for transit windows: {period}")
+
+    if not np.isfinite(epoch):
+        raise ValueError(f"invalid epoch for transit windows: {epoch}")
+
+    if time.size == 0:
+        return np.asarray([], dtype=np.float64)
+
+    time_min = float(np.nanmin(time))
+    time_max = float(np.nanmax(time))
+    half_width_days = half_width_phase * period
+
+    k_start = int(np.ceil((time_min - half_width_days - epoch) / period))
+    k_end = int(np.floor((time_max + half_width_days - epoch) / period))
+
+    if k_end < k_start:
+        return np.asarray([], dtype=np.float64)
+
+    k_values = np.arange(k_start, k_end + 1, dtype=np.int64)
+
+    return epoch + k_values.astype(np.float64) * period
+
+
+def build_transit_windows(
+    time: np.ndarray,
+    flux: np.ndarray,
+    period: float,
+    epoch: float,
+    half_width_phase: float,
+) -> dict[str, Any]:
+    centers = transit_centers_in_observed_window(
+        time=time,
+        period=period,
+        epoch=epoch,
+        half_width_phase=half_width_phase,
+    )
+
+    candidate_count = int(centers.size)
+
+    selected_indices = evenly_spaced_indices(
+        n_items=candidate_count,
+        max_items=MAX_TRANSIT_WINDOWS,
+    )
+    selected_centers = centers[selected_indices]
+
+    transit_view = np.zeros(
+        (
+            MAX_TRANSIT_WINDOWS,
+            TRANSIT_BINS,
+        ),
+        dtype=np.float32,
+    )
+    transit_mask = np.zeros(MAX_TRANSIT_WINDOWS, dtype=bool)
+    transit_missing_fractions = []
+
+    stored_count = 0
+
+    for center in selected_centers:
+        relative_phase = (time - center) / period
+
+        in_window = (
+            np.isfinite(relative_phase)
+            & np.isfinite(flux)
+            & (relative_phase >= -half_width_phase)
+            & (relative_phase <= half_width_phase)
+        )
+
+        if not in_window.any():
+            continue
+
+        _, window, missing_fraction = median_bin_or_empty(
+            phase=relative_phase,
+            flux=flux,
+            half_width=half_width_phase,
+            n_bins=TRANSIT_BINS,
+        )
+
+        transit_view[stored_count] = window
+        transit_mask[stored_count] = True
+        transit_missing_fractions.append(float(missing_fraction))
+        stored_count += 1
+
+        if stored_count >= MAX_TRANSIT_WINDOWS:
+            break
+
+    if stored_count == 0:
+        raise ValueError("no per-transit windows with clean points")
+
+    missing_values = np.asarray(transit_missing_fractions, dtype=np.float64)
+
+    return {
+        "transit_view": transit_view,
+        "transit_mask": transit_mask,
+        "transit_count": stored_count,
+        "transit_candidate_count": candidate_count,
+        "transit_selected_center_count": int(selected_centers.size),
+        "transit_missing_bin_fraction_mean": float(np.mean(missing_values)),
+        "transit_missing_bin_fraction_max": float(np.max(missing_values)),
+    }
 
 def process_row(row: pd.Series) -> tuple[dict[str, Any], dict[str, Any] | None]:
     kepid = int(row["kepid"])
@@ -103,6 +234,11 @@ def process_row(row: pd.Series) -> tuple[dict[str, Any], dict[str, Any] | None]:
         "local_window_half_width_wide": np.nan,
         "local_missing_bin_fraction_before_interp_narrow": np.nan,
         "local_missing_bin_fraction_before_interp_wide": np.nan,
+        "transit_candidate_count": 0,
+        "transit_selected_center_count": 0,
+        "transit_count": 0,
+        "transit_missing_bin_fraction_mean": np.nan,
+        "transit_missing_bin_fraction_max": np.nan,
         "processed_ok": False,
         "failure_reason": "",
     }
@@ -170,6 +306,28 @@ def process_row(row: pd.Series) -> tuple[dict[str, Any], dict[str, Any] | None]:
                 f"local_missing_bin_fraction_before_interp_{scale_name}"
             ] = scaled_missing_fraction
 
+        transit_payload = build_transit_windows(
+            time=time,
+            flux=flux,
+            period=period,
+            epoch=epoch,
+            half_width_phase=half_width,
+        )
+
+        transit_record = {
+            "transit_candidate_count": transit_payload["transit_candidate_count"],
+            "transit_selected_center_count": transit_payload[
+                "transit_selected_center_count"
+            ],
+            "transit_count": transit_payload["transit_count"],
+            "transit_missing_bin_fraction_mean": transit_payload[
+                "transit_missing_bin_fraction_mean"
+            ],
+            "transit_missing_bin_fraction_max": transit_payload[
+                "transit_missing_bin_fraction_max"
+            ],
+        }
+
         output_record.update(
             {
                 "n_fits_files": stats["n_fits_files"],
@@ -184,6 +342,7 @@ def process_row(row: pd.Series) -> tuple[dict[str, Any], dict[str, Any] | None]:
                 "local_missing_bin_fraction_before_interp": local_missing_fraction,
                 "local_window_half_width": half_width,
                 **aux_local_record,
+                **transit_record,
                 "processed_ok": True,
             }
         )
@@ -204,6 +363,9 @@ def process_row(row: pd.Series) -> tuple[dict[str, Any], dict[str, Any] | None]:
             "local_view": local_view,
             "local_window_half_width": half_width,
             **aux_local_payload,
+            "transit_view": transit_payload["transit_view"],
+            "transit_mask": transit_payload["transit_mask"],
+            "transit_count": transit_payload["transit_count"],
             "tabular_raw": feature_values,
         }
 
@@ -327,6 +489,19 @@ def main() -> None:
         dtype=np.float32,
     )
 
+    transit_view = np.stack(
+        [payload["transit_view"] for payload in processed_payloads]
+    ).astype(np.float32)
+
+    transit_mask = np.stack(
+        [payload["transit_mask"] for payload in processed_payloads]
+    ).astype(bool)
+
+    transit_count = np.asarray(
+        [payload["transit_count"] for payload in processed_payloads],
+        dtype=np.int64,
+    )
+
     np.savez_compressed(
         PROCESSED_NPZ_PATH,
         global_phase=global_phase.astype(np.float32),
@@ -337,6 +512,9 @@ def main() -> None:
         local_view_narrow=local_view_narrow,
         local_phase_wide=local_phase_wide,
         local_view_wide=local_view_wide,
+        transit_view=transit_view,
+        transit_mask=transit_mask,
+        transit_count=transit_count,
         tabular_features=tabular["matrix"],
         labels=labels,
         kepid=kepid,
@@ -361,6 +539,10 @@ def main() -> None:
     print("local_view_shape:", local_view.shape)
     print("local_view_narrow_shape:", local_view_narrow.shape)
     print("local_view_wide_shape:", local_view_wide.shape)
+    print("transit_view_shape:", transit_view.shape)
+    print("transit_mask_shape:", transit_mask.shape)
+    print("transit_count_summary:")
+    print(pd.Series(transit_count).describe())
     print("tabular_features_shape:", tabular["matrix"].shape)
     print("label_counts:")
     print(pd.Series(labels).value_counts().sort_index())
