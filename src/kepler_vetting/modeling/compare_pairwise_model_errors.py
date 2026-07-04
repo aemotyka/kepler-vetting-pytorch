@@ -48,6 +48,9 @@ FUSED_TRANSIT_SET_PREDICTIONS_PATH = (
 FUSED_LOCAL_TRANSIT_SET_PREDICTIONS_PATH = (
     METRICS_DIR / "fused_local_transit_set_model_predictions.csv"
 )
+RESCUE_STACKED_PREDICTIONS_PATH = (
+    METRICS_DIR / "rescue_stacked_model_predictions.csv"
+)
 STACKED_SCORE_PREDICTIONS_PATH = METRICS_DIR / "stacked_score_model_predictions.csv"
 
 PAIRWISE_SUMMARY_PATH = METRICS_DIR / "pairwise_model_error_summary.csv"
@@ -247,6 +250,11 @@ MODEL_SPECS = {
         model_name="fused_tabular_local_transit_set_cnn",
         predictions_path=FUSED_LOCAL_TRANSIT_SET_PREDICTIONS_PATH,
     ),
+    "rescue_stacked_logistic_regression": ModelSpec(
+        display_model="rescue_stacked_logistic_regression",
+        model_name="rescue_stacked_logistic_regression",
+        predictions_path=RESCUE_STACKED_PREDICTIONS_PATH,
+    ),
     "stacked_score_logistic_regression": ModelSpec(
         display_model="stacked_score_logistic_regression",
         model_name="stacked_score_logistic_regression",
@@ -369,6 +377,36 @@ PAIR_SPECS = [
         pair_id="fused_transit_set_vs_fused_local_transit_set",
         left=MODEL_SPECS["fused_tabular_transit_set_cnn"],
         right=MODEL_SPECS["fused_tabular_local_transit_set_cnn"],
+    ),
+    PairSpec(
+        pair_id="tabular_vs_rescue_stacked",
+        left=MODEL_SPECS["tabular_logistic_regression"],
+        right=MODEL_SPECS["rescue_stacked_logistic_regression"],
+    ),
+    PairSpec(
+        pair_id="tabular_local_features_vs_rescue_stacked",
+        left=MODEL_SPECS["tabular_local_features_logistic_regression"],
+        right=MODEL_SPECS["rescue_stacked_logistic_regression"],
+    ),
+    PairSpec(
+        pair_id="fused_vs_rescue_stacked",
+        left=MODEL_SPECS["fused_tabular_local_cnn"],
+        right=MODEL_SPECS["rescue_stacked_logistic_regression"],
+    ),
+    PairSpec(
+        pair_id="fused_transit_set_vs_rescue_stacked",
+        left=MODEL_SPECS["fused_tabular_transit_set_cnn"],
+        right=MODEL_SPECS["rescue_stacked_logistic_regression"],
+    ),
+    PairSpec(
+        pair_id="fused_local_transit_set_vs_rescue_stacked",
+        left=MODEL_SPECS["fused_tabular_local_transit_set_cnn"],
+        right=MODEL_SPECS["rescue_stacked_logistic_regression"],
+    ),
+    PairSpec(
+        pair_id="stacked_vs_rescue_stacked",
+        left=MODEL_SPECS["stacked_score_logistic_regression"],
+        right=MODEL_SPECS["rescue_stacked_logistic_regression"],
     ),
     PairSpec(
         pair_id="fused_local_features_vs_fused_residual_local",
@@ -1189,7 +1227,7 @@ def main() -> None:
         columns=SUMMARY_COLUMNS,
     )
 
-    strict_pair = "fused_vs_fused_local_transit_set"
+    strict_pair = "fused_vs_rescue_stacked"
     
     strict_changed = changed[
         (changed["pair_id"] == strict_pair)

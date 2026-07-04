@@ -90,6 +90,11 @@ OTHER_MODEL_SPECS = [
         "model_name": "fused_tabular_local_transit_set_cnn",
         "path": METRICS_DIR / "fused_local_transit_set_model_predictions.csv",
     },
+        {
+        "display_model": "rescue_stacked_logistic_regression",
+        "model_name": "rescue_stacked_logistic_regression",
+        "path": METRICS_DIR / "rescue_stacked_model_predictions.csv",
+    },
 ]
 
 REQUIRED_PREDICTION_COLUMNS = {
