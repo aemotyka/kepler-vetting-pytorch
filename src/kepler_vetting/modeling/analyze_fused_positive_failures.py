@@ -95,6 +95,11 @@ OTHER_MODEL_SPECS = [
         "model_name": "rescue_stacked_logistic_regression",
         "path": METRICS_DIR / "rescue_stacked_model_predictions.csv",
     },
+    {
+        "display_model": "selective_rescue_rule_model",
+        "model_name": "selective_rescue_rule_model",
+        "path": METRICS_DIR / "selective_rescue_rule_model_predictions.csv",
+    },
 ]
 
 REQUIRED_PREDICTION_COLUMNS = {

@@ -40,6 +40,9 @@ FUSED_LOCAL_TRANSIT_SET_PREDICTIONS_PATH = (
 RESCUE_STACKED_PREDICTIONS_PATH = (
     METRICS_DIR / "rescue_stacked_model_predictions.csv"
 )
+SELECTIVE_RESCUE_RULE_PREDICTIONS_PATH = (
+    METRICS_DIR / "selective_rescue_rule_model_predictions.csv"
+)
 STACKED_SCORE_PREDICTIONS_PATH = METRICS_DIR / "stacked_score_model_predictions.csv"
 
 COMPARISON_BY_SEED_PATH = METRICS_DIR / "model_comparison_by_seed.csv"
@@ -126,6 +129,13 @@ PREDICTION_SOURCES = [
         ],
     },
     {
+        "family": "selective_rescue_rule",
+        "path": SELECTIVE_RESCUE_RULE_PREDICTIONS_PATH,
+        "models": [
+            "selective_rescue_rule_model",
+        ],
+    },
+    {
         "family": "stacked_score",
         "path": STACKED_SCORE_PREDICTIONS_PATH,
         "models": [
@@ -150,7 +160,7 @@ DISPLAY_NAMES = {
     "fused_tabular_multiscale_local_cnn": "fused_tabular_multiscale_local_cnn",
     "fused_tabular_transit_set_cnn": "fused_tabular_transit_set_cnn",
     "fused_tabular_local_transit_set_cnn": "fused_tabular_local_transit_set_cnn",
-    "rescue_stacked_logistic_regression": "rescue_stacked_logistic_regression",
+    "selective_rescue_rule_model": "selective_rescue_rule_model",
 }
 
 MODEL_ORDER = {
@@ -167,6 +177,7 @@ MODEL_ORDER = {
     "fused_tabular_local_transit_set_cnn": 10,
     "stacked_score_logistic_regression": 11,
     "rescue_stacked_logistic_regression": 12,
+    "selective_rescue_rule_model": 13,
 }
 
 METRIC_VARIANT_ORDER = {
