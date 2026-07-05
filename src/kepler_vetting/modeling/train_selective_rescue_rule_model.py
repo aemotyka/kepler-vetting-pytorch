@@ -193,6 +193,7 @@ def selected_base_models() -> list[BaseModelSpec]:
         "global_view_cnn",
         "fused_tabular_local_cnn",
         "fused_tabular_transit_set_cnn",
+        "fused_tabular_local_transit_set_cnn",
         "rescue_stacked_logistic_regression",
     }
 
