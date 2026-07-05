@@ -42,6 +42,9 @@ CANDIDATE_WEIGHTED_FUSED_LOCAL_PREDICTIONS_PATH = (
 THREE_CLASS_FUSED_LOCAL_PREDICTIONS_PATH = (
     METRICS_DIR / "three_class_fused_local_model_predictions.csv"
 )
+TWO_STAGE_RESCUE_GATE_PREDICTIONS_PATH = (
+    METRICS_DIR / "two_stage_rescue_gate_predictions.csv"
+)
 FUSED_LOCAL_FEATURES_PREDICTIONS_PATH = (
     METRICS_DIR / "fused_local_features_model_predictions.csv"
 )
@@ -252,6 +255,11 @@ MODEL_SPECS = {
         model_name="three_class_fused_tabular_local_cnn",
         predictions_path=THREE_CLASS_FUSED_LOCAL_PREDICTIONS_PATH,
     ),
+    "two_stage_rescue_gate": ModelSpec(
+        display_model="two_stage_rescue_gate",
+        model_name="two_stage_rescue_gate",
+        predictions_path=TWO_STAGE_RESCUE_GATE_PREDICTIONS_PATH,
+    ),
     "fused_tabular_local_features_cnn": ModelSpec(
         display_model="fused_tabular_local_features_cnn",
         model_name="fused_tabular_local_features_cnn",
@@ -321,6 +329,11 @@ PAIR_SPECS = [
         right=MODEL_SPECS["three_class_fused_tabular_local_cnn"],
     ),
     PairSpec(
+        pair_id="fused_vs_two_stage_rescue_gate",
+        left=MODEL_SPECS["fused_tabular_local_cnn"],
+        right=MODEL_SPECS["two_stage_rescue_gate"],
+    ),
+    PairSpec(
         pair_id="soft_label_fused_local_vs_candidate_weighted_fused_local",
         left=MODEL_SPECS["soft_label_fused_tabular_local_cnn"],
         right=MODEL_SPECS["candidate_weighted_fused_tabular_local_cnn"],
@@ -336,6 +349,11 @@ PAIR_SPECS = [
         right=MODEL_SPECS["three_class_fused_tabular_local_cnn"],
     ),
     PairSpec(
+        pair_id="three_class_fused_local_vs_two_stage_rescue_gate",
+        left=MODEL_SPECS["three_class_fused_tabular_local_cnn"],
+        right=MODEL_SPECS["two_stage_rescue_gate"],
+    ),
+    PairSpec(
         pair_id="fused_local_transit_set_vs_soft_label_fused_local",
         left=MODEL_SPECS["fused_tabular_local_transit_set_cnn"],
         right=MODEL_SPECS["soft_label_fused_tabular_local_cnn"],
@@ -349,6 +367,11 @@ PAIR_SPECS = [
         pair_id="fused_local_transit_set_vs_three_class_fused_local",
         left=MODEL_SPECS["fused_tabular_local_transit_set_cnn"],
         right=MODEL_SPECS["three_class_fused_tabular_local_cnn"],
+    ),
+    PairSpec(
+        pair_id="fused_local_transit_set_vs_two_stage_rescue_gate",
+        left=MODEL_SPECS["fused_tabular_local_transit_set_cnn"],
+        right=MODEL_SPECS["two_stage_rescue_gate"],
     ),
     PairSpec(
         pair_id="tabular_vs_fused_local_features",
@@ -1359,7 +1382,7 @@ def main() -> None:
         columns=SUMMARY_COLUMNS,
     )
 
-    strict_pair = "fused_vs_three_class_fused_local"
+    strict_pair = "fused_vs_two_stage_rescue_gate"
 
     strict_changed = changed[
         (changed["pair_id"] == strict_pair)

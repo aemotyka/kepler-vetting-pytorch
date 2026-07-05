@@ -31,6 +31,9 @@ CANDIDATE_WEIGHTED_FUSED_LOCAL_PREDICTIONS_PATH = (
 THREE_CLASS_FUSED_LOCAL_PREDICTIONS_PATH = (
     METRICS_DIR / "three_class_fused_local_model_predictions.csv"
 )
+TWO_STAGE_RESCUE_GATE_PREDICTIONS_PATH = (
+    METRICS_DIR / "two_stage_rescue_gate_predictions.csv"
+)
 FUSED_LOCAL_FEATURES_PREDICTIONS_PATH = (
     METRICS_DIR / "fused_local_features_model_predictions.csv"
 )
@@ -117,6 +120,13 @@ PREDICTION_SOURCES = [
         ],
     },
     {
+        "family": "two_stage_rescue_gate",
+        "path": TWO_STAGE_RESCUE_GATE_PREDICTIONS_PATH,
+        "models": [
+            "two_stage_rescue_gate",
+        ],
+    },
+    {
         "family": "fused_local_features",
         "path": FUSED_LOCAL_FEATURES_PREDICTIONS_PATH,
         "models": [
@@ -189,6 +199,7 @@ DISPLAY_NAMES = {
         "candidate_weighted_fused_tabular_local_cnn"
     ),
     "three_class_fused_tabular_local_cnn": "three_class_fused_tabular_local_cnn",
+    "two_stage_rescue_gate": "two_stage_rescue_gate",
     "fused_tabular_local_features_cnn": "fused_tabular_local_features_cnn",
     "fused_tabular_residual_local_cnn": "fused_tabular_residual_local_cnn",
     "stacked_score_logistic_regression": "stacked_score_logistic_regression",
@@ -209,14 +220,15 @@ MODEL_ORDER = {
     "soft_label_fused_tabular_local_cnn": 6,
     "candidate_weighted_fused_tabular_local_cnn": 7,
     "three_class_fused_tabular_local_cnn": 8,
-    "fused_tabular_local_features_cnn": 9,
-    "fused_tabular_residual_local_cnn": 10,
-    "fused_tabular_multiscale_local_cnn": 11,
-    "fused_tabular_transit_set_cnn": 12,
-    "fused_tabular_local_transit_set_cnn": 13,
-    "stacked_score_logistic_regression": 14,
-    "rescue_stacked_logistic_regression": 15,
-    "selective_rescue_rule_model": 16,
+    "two_stage_rescue_gate": 9,
+    "fused_tabular_local_features_cnn": 10,
+    "fused_tabular_residual_local_cnn": 11,
+    "fused_tabular_multiscale_local_cnn": 12,
+    "fused_tabular_transit_set_cnn": 13,
+    "fused_tabular_local_transit_set_cnn": 14,
+    "stacked_score_logistic_regression": 15,
+    "rescue_stacked_logistic_regression": 16,
+    "selective_rescue_rule_model": 17,
 }
 
 METRIC_VARIANT_ORDER = {
