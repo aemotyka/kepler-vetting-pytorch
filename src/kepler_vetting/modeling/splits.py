@@ -1,14 +1,65 @@
 from __future__ import annotations
 
+import os
+
 import numpy as np
 from sklearn.model_selection import GroupShuffleSplit
 
 
-SPLIT_MODE = "grouped_by_kepid"
+def configured_split_fraction(
+    name: str,
+    default: float,
+) -> float:
+    raw_value = os.environ.get(name, "").strip()
 
-DEFAULT_TEST_SIZE = 0.20
-DEFAULT_VAL_SIZE = 0.20
-DEFAULT_N_CANDIDATES = 128
+    if not raw_value:
+        return default
+
+    try:
+        value = float(raw_value)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a float; got {raw_value!r}") from exc
+
+    if not 0.0 < value < 1.0:
+        raise ValueError(f"{name} must be in (0, 1); got {value}")
+
+    return value
+
+
+def configured_split_candidates(
+    name: str,
+    default: int,
+) -> int:
+    raw_value = os.environ.get(name, "").strip()
+
+    if not raw_value:
+        return default
+
+    try:
+        value = int(raw_value)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be an integer; got {raw_value!r}") from exc
+
+    if value <= 0:
+        raise ValueError(f"{name} must be positive; got {value}")
+
+    return value
+
+
+DEFAULT_TEST_SIZE = configured_split_fraction(
+    name="KEPLER_VETTING_TEST_SIZE",
+    default=0.20,
+)
+DEFAULT_VAL_SIZE = configured_split_fraction(
+    name="KEPLER_VETTING_VAL_SIZE",
+    default=0.20,
+)
+DEFAULT_N_CANDIDATES = configured_split_candidates(
+    name="KEPLER_VETTING_N_SPLIT_CANDIDATES",
+    default=128,
+)
+
+SPLIT_MODE = f"grouped_by_kepid_test{DEFAULT_TEST_SIZE:.2f}_val{DEFAULT_VAL_SIZE:.2f}"
 
 
 def validate_split_inputs(

@@ -447,15 +447,32 @@ def validate_predictions_against_current_dataset(
 def load_all_predictions() -> pd.DataFrame:
     current_dataset = load_current_model_ready_dataset()
 
-    frames = [
-        load_predictions(
-            path=source["path"],
-            family=source["family"],
-            models=source["models"],
-            current_dataset=current_dataset,
+    frames = []
+    skipped_sources = []
+
+    for source in PREDICTION_SOURCES:
+        path = source["path"]
+
+        if not path.exists():
+            skipped_sources.append(
+                {
+                    "family": source["family"],
+                    "path": path,
+                }
+            )
+            continue
+
+        frames.append(
+            load_predictions(
+                path=path,
+                family=source["family"],
+                models=source["models"],
+                current_dataset=current_dataset,
+            )
         )
-        for source in PREDICTION_SOURCES
-    ]
+
+    if not frames:
+        raise ValueError("no prediction files were loaded")
 
     predictions = pd.concat(
         frames,
@@ -478,6 +495,12 @@ def load_all_predictions() -> pd.DataFrame:
         MODEL_READY_NPZ_PATH,
     )
     print("current_model_ready_rows:", current_dataset["labels"].shape[0])
+
+    if skipped_sources:
+        print("skipped missing prediction sources:")
+        for skipped in skipped_sources:
+            print(f"  {skipped['family']}: {skipped['path']}")
+
     print()
 
     return predictions

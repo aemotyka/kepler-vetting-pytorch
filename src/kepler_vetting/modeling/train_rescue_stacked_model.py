@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 
 import numpy as np
 import pandas as pd
@@ -98,7 +99,7 @@ class BaseModelSpec:
     predictions_path: object
 
 
-BASE_MODELS = [
+ALL_BASE_MODELS = [
     BaseModelSpec(
         display_model="tabular_logistic_regression",
         model_name="logistic_regression",
@@ -150,6 +151,54 @@ BASE_MODELS = [
         predictions_path=FUSED_LOCAL_TRANSIT_SET_PREDICTIONS_PATH,
     ),
 ]
+
+
+def configured_base_model_set() -> str:
+    value = os.environ.get("KEPLER_VETTING_BASE_MODEL_SET", "all").strip().lower()
+
+    if value not in {"all", "lean"}:
+        raise ValueError(
+            "KEPLER_VETTING_BASE_MODEL_SET must be one of: all, lean; "
+            f"got {value!r}"
+        )
+
+    return value
+
+
+def selected_base_models() -> list[BaseModelSpec]:
+    base_model_set = configured_base_model_set()
+
+    if base_model_set == "all":
+        return ALL_BASE_MODELS
+
+    lean_display_models = {
+        "tabular_logistic_regression",
+        "tabular_local_features_logistic_regression",
+        "local_view_cnn",
+        "global_view_cnn",
+        "fused_tabular_local_cnn",
+        "fused_tabular_transit_set_cnn",
+    }
+
+    selected = [
+        spec
+        for spec in ALL_BASE_MODELS
+        if spec.display_model in lean_display_models
+    ]
+
+    missing = lean_display_models - {
+        spec.display_model
+        for spec in selected
+    }
+
+    if missing:
+        raise ValueError(f"lean base model set is missing models: {sorted(missing)}")
+
+    return selected
+
+
+BASE_MODEL_SET = configured_base_model_set()
+BASE_MODELS = selected_base_models()
 
 
 def require_file(path: object) -> None:
@@ -564,6 +613,7 @@ def main() -> None:
     features = feature_columns(merged)
 
     print("model:", MODEL_NAME)
+    print("base_model_set:", BASE_MODEL_SET)
     print("base_models:", [spec.display_model for spec in BASE_MODELS])
     print("n_features:", len(features))
     print("train_split_for_rescue_stacker: val")

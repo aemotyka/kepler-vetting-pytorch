@@ -1208,16 +1208,42 @@ def main() -> None:
     context = load_model_ready_context()
 
     prediction_cache: dict[str, pd.DataFrame] = {}
+    skipped_models = []
 
     for spec in MODEL_SPECS.values():
         cache_key = spec.display_model
 
-        if cache_key not in prediction_cache:
-            prediction_cache[cache_key] = load_predictions(spec)
+        if cache_key in prediction_cache:
+            continue
+
+        if not spec.predictions_path.exists():
+            skipped_models.append(
+                {
+                    "display_model": spec.display_model,
+                    "path": spec.predictions_path,
+                }
+            )
+            continue
+
+        prediction_cache[cache_key] = load_predictions(spec)
+
+    if skipped_models:
+        print("skipped missing pairwise prediction models:")
+        for skipped in skipped_models:
+            print(f"  {skipped['display_model']}: {skipped['path']}")
+        print()
 
     pair_frames = []
+    skipped_pairs = []
 
     for pair in PAIR_SPECS:
+        if (
+            pair.left.display_model not in prediction_cache
+            or pair.right.display_model not in prediction_cache
+        ):
+            skipped_pairs.append(pair.pair_id)
+            continue
+
         pair_rows = build_pair_rows(
             pair=pair,
             left_predictions=prediction_cache[pair.left.display_model],
@@ -1225,6 +1251,15 @@ def main() -> None:
             thresholds=thresholds,
         )
         pair_frames.append(pair_rows)
+
+    if skipped_pairs:
+        print("skipped pairwise comparisons with missing predictions:")
+        for pair_id in skipped_pairs:
+            print(f"  {pair_id}")
+        print()
+
+    if not pair_frames:
+        raise ValueError("no pairwise comparisons could be built")
 
     rows = pd.concat(pair_frames, ignore_index=True)
     rows = attach_context(rows=rows, context=context)
