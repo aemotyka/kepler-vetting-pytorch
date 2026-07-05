@@ -415,45 +415,61 @@ def merge_context_features(frame: pd.DataFrame) -> pd.DataFrame:
 def add_rescue_features(frame: pd.DataFrame) -> pd.DataFrame:
     frame = frame.copy()
 
-    score_columns = [
-        score_column_name(spec.display_model)
+    score_columns_by_model = {
+        spec.display_model: score_column_name(spec.display_model)
         for spec in BASE_MODELS
+    }
+
+    missing_score_columns = [
+        column
+        for column in score_columns_by_model.values()
+        if column not in frame.columns
     ]
+
+    if missing_score_columns:
+        raise ValueError(
+            "missing score columns for selected base models: "
+            f"{missing_score_columns}"
+        )
 
     fused = score_column_name("fused_tabular_local_cnn")
-    local = score_column_name("local_view_cnn")
-    global_ = score_column_name("global_view_cnn")
-    transit = score_column_name("fused_tabular_transit_set_cnn")
-    local_transit = score_column_name("fused_tabular_local_transit_set_cnn")
-    multiscale = score_column_name("fused_tabular_multiscale_local_cnn")
-    residual = score_column_name("fused_tabular_residual_local_cnn")
-    local_features = score_column_name("fused_tabular_local_features_cnn")
+
+    if fused not in frame.columns:
+        raise ValueError(
+            "rescue stacker requires fused_tabular_local_cnn in BASE_MODELS"
+        )
+
+    rescue_display_models = [
+        spec.display_model
+        for spec in BASE_MODELS
+        if spec.display_model
+        not in {
+            "tabular_logistic_regression",
+            "fused_tabular_local_cnn",
+        }
+    ]
 
     rescue_columns = [
-        local,
-        global_,
-        transit,
-        local_transit,
-        multiscale,
-        residual,
-        local_features,
+        score_columns_by_model[display_model]
+        for display_model in rescue_display_models
     ]
+
+    if not rescue_columns:
+        raise ValueError("rescue stacker needs at least one rescue model score")
 
     frame["rescue__max_score"] = frame[rescue_columns].max(axis=1)
     frame["rescue__mean_score"] = frame[rescue_columns].mean(axis=1)
     frame["rescue__min_score"] = frame[rescue_columns].min(axis=1)
     frame["rescue__score_range"] = (
-        frame[rescue_columns].max(axis=1)
-        - frame[rescue_columns].min(axis=1)
+        frame["rescue__max_score"]
+        - frame["rescue__min_score"]
     )
 
-    frame["rescue__local_minus_fused"] = frame[local] - frame[fused]
-    frame["rescue__global_minus_fused"] = frame[global_] - frame[fused]
-    frame["rescue__transit_minus_fused"] = frame[transit] - frame[fused]
-    frame["rescue__local_transit_minus_fused"] = frame[local_transit] - frame[fused]
-    frame["rescue__multiscale_minus_fused"] = frame[multiscale] - frame[fused]
-    frame["rescue__residual_minus_fused"] = frame[residual] - frame[fused]
-    frame["rescue__local_features_minus_fused"] = frame[local_features] - frame[fused]
+    for display_model in rescue_display_models:
+        column = score_columns_by_model[display_model]
+        feature_name = f"rescue__{display_model}_minus_fused"
+        frame[feature_name] = frame[column] - frame[fused]
+
     frame["rescue__max_minus_fused"] = frame["rescue__max_score"] - frame[fused]
     frame["rescue__mean_minus_fused"] = frame["rescue__mean_score"] - frame[fused]
 
@@ -468,6 +484,11 @@ def add_rescue_features(frame: pd.DataFrame) -> pd.DataFrame:
         & (frame["rescue__max_score"] >= 0.5)
     ).astype(float)
 
+    score_columns = [
+        score_columns_by_model[spec.display_model]
+        for spec in BASE_MODELS
+    ]
+
     frame["rescue__positive_vote_count"] = (
         frame[score_columns] >= 0.5
     ).sum(axis=1).astype(float)
@@ -475,17 +496,21 @@ def add_rescue_features(frame: pd.DataFrame) -> pd.DataFrame:
         frame[rescue_columns] >= 0.5
     ).sum(axis=1).astype(float)
 
-    frame["rescue__local_global_vote_count"] = (
-        frame[[local, global_]] >= 0.5
-    ).sum(axis=1).astype(float)
-    frame["rescue__global_or_local_positive"] = (
-        (frame[local] >= 0.5)
-        | (frame[global_] >= 0.5)
-    ).astype(float)
-    frame["rescue__global_and_local_positive"] = (
-        (frame[local] >= 0.5)
-        & (frame[global_] >= 0.5)
-    ).astype(float)
+    local = score_column_name("local_view_cnn")
+    global_ = score_column_name("global_view_cnn")
+
+    if local in frame.columns and global_ in frame.columns:
+        frame["rescue__local_global_vote_count"] = (
+            frame[[local, global_]] >= 0.5
+        ).sum(axis=1).astype(float)
+        frame["rescue__global_or_local_positive"] = (
+            (frame[local] >= 0.5)
+            | (frame[global_] >= 0.5)
+        ).astype(float)
+        frame["rescue__global_and_local_positive"] = (
+            (frame[local] >= 0.5)
+            & (frame[global_] >= 0.5)
+        ).astype(float)
 
     return frame
 
