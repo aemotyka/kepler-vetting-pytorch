@@ -23,14 +23,10 @@ def readiness_reasons(row: pd.Series) -> list[str]:
     reasons = []
 
     if int(row["n_clean_points"]) < MODEL_READY_MIN_CLEAN_POINTS:
-        reasons.append(
-            f"n_clean_points<{MODEL_READY_MIN_CLEAN_POINTS}"
-        )
+        reasons.append(f"n_clean_points<{MODEL_READY_MIN_CLEAN_POINTS}")
 
     if int(row["n_fits_files"]) < MODEL_READY_MIN_FITS_FILES:
-        reasons.append(
-            f"n_fits_files<{MODEL_READY_MIN_FITS_FILES}"
-        )
+        reasons.append(f"n_fits_files<{MODEL_READY_MIN_FITS_FILES}")
 
     if (
         float(row["global_missing_bin_fraction_before_interp"])

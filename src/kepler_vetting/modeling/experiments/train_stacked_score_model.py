@@ -240,10 +240,7 @@ def validate_against_model_ready_dataset(frame: pd.DataFrame) -> None:
 
 
 def feature_columns() -> list[str]:
-    return [
-        score_column_name(spec.display_model)
-        for spec in BASE_MODELS
-    ]
+    return [score_column_name(spec.display_model) for spec in BASE_MODELS]
 
 
 def fit_stacker(
@@ -364,9 +361,7 @@ def main() -> None:
             full_seed_frame["row_index"].to_numpy(dtype=int),
             expected_row_index,
         ):
-            raise ValueError(
-                f"seed={seed} row_index is not contiguous after sorting"
-            )
+            raise ValueError(f"seed={seed} row_index is not contiguous after sorting")
 
         full_kepid = full_seed_frame["kepid"].to_numpy(dtype=int)
         full_kepoi_name = full_seed_frame["kepoi_name"].astype(str).to_numpy()
@@ -443,8 +438,7 @@ def main() -> None:
     print()
     print("coefficient summary:")
     print(
-        coefficients
-        .groupby("feature")["coefficient"]
+        coefficients.groupby("feature")["coefficient"]
         .agg(["mean", "std", "min", "max"])
         .reset_index()
         .sort_values("mean", ascending=False)

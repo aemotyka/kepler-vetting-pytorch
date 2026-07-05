@@ -158,8 +158,7 @@ def configured_base_model_set() -> str:
 
     if value not in {"all", "lean"}:
         raise ValueError(
-            "KEPLER_VETTING_BASE_MODEL_SET must be one of: all, lean; "
-            f"got {value!r}"
+            f"KEPLER_VETTING_BASE_MODEL_SET must be one of: all, lean; got {value!r}"
         )
 
     return value
@@ -182,15 +181,10 @@ def selected_base_models() -> list[BaseModelSpec]:
     }
 
     selected = [
-        spec
-        for spec in ALL_BASE_MODELS
-        if spec.display_model in lean_display_models
+        spec for spec in ALL_BASE_MODELS if spec.display_model in lean_display_models
     ]
 
-    missing = lean_display_models - {
-        spec.display_model
-        for spec in selected
-    }
+    missing = lean_display_models - {spec.display_model for spec in selected}
 
     if missing:
         raise ValueError(f"lean base model set is missing models: {sorted(missing)}")
@@ -429,8 +423,7 @@ def add_rescue_features(frame: pd.DataFrame) -> pd.DataFrame:
 
     if missing_score_columns:
         raise ValueError(
-            "missing score columns for selected base models: "
-            f"{missing_score_columns}"
+            f"missing score columns for selected base models: {missing_score_columns}"
         )
 
     fused = score_column_name("fused_tabular_local_cnn")
@@ -451,8 +444,7 @@ def add_rescue_features(frame: pd.DataFrame) -> pd.DataFrame:
     ]
 
     rescue_columns = [
-        score_columns_by_model[display_model]
-        for display_model in rescue_display_models
+        score_columns_by_model[display_model] for display_model in rescue_display_models
     ]
 
     if not rescue_columns:
@@ -462,8 +454,7 @@ def add_rescue_features(frame: pd.DataFrame) -> pd.DataFrame:
     frame["rescue__mean_score"] = frame[rescue_columns].mean(axis=1)
     frame["rescue__min_score"] = frame[rescue_columns].min(axis=1)
     frame["rescue__score_range"] = (
-        frame["rescue__max_score"]
-        - frame["rescue__min_score"]
+        frame["rescue__max_score"] - frame["rescue__min_score"]
     )
 
     for display_model in rescue_display_models:
@@ -477,55 +468,44 @@ def add_rescue_features(frame: pd.DataFrame) -> pd.DataFrame:
     frame["rescue__fused_margin_abs"] = np.abs(frame[fused] - 0.5)
     frame["rescue__fused_negative"] = (frame[fused] < 0.5).astype(float)
     frame["rescue__fused_positive"] = (frame[fused] >= 0.5).astype(float)
-    frame["rescue__max_rescue_positive"] = (
-        frame["rescue__max_score"] >= 0.5
-    ).astype(float)
+    frame["rescue__max_rescue_positive"] = (frame["rescue__max_score"] >= 0.5).astype(
+        float
+    )
     frame["rescue__fused_negative_max_rescue_positive"] = (
-        (frame[fused] < 0.5)
-        & (frame["rescue__max_score"] >= 0.5)
+        (frame[fused] < 0.5) & (frame["rescue__max_score"] >= 0.5)
     ).astype(float)
 
-    score_columns = [
-        score_columns_by_model[spec.display_model]
-        for spec in BASE_MODELS
-    ]
+    score_columns = [score_columns_by_model[spec.display_model] for spec in BASE_MODELS]
 
     frame["rescue__positive_vote_count"] = (
-        frame[score_columns] >= 0.5
-    ).sum(axis=1).astype(float)
+        (frame[score_columns] >= 0.5).sum(axis=1).astype(float)
+    )
     frame["rescue__rescue_positive_vote_count"] = (
-        frame[rescue_columns] >= 0.5
-    ).sum(axis=1).astype(float)
+        (frame[rescue_columns] >= 0.5).sum(axis=1).astype(float)
+    )
 
     local = score_column_name("local_view_cnn")
     global_ = score_column_name("global_view_cnn")
 
     if local in frame.columns and global_ in frame.columns:
         frame["rescue__local_global_vote_count"] = (
-            frame[[local, global_]] >= 0.5
-        ).sum(axis=1).astype(float)
+            (frame[[local, global_]] >= 0.5).sum(axis=1).astype(float)
+        )
         frame["rescue__global_or_local_positive"] = (
-            (frame[local] >= 0.5)
-            | (frame[global_] >= 0.5)
+            (frame[local] >= 0.5) | (frame[global_] >= 0.5)
         ).astype(float)
         frame["rescue__global_and_local_positive"] = (
-            (frame[local] >= 0.5)
-            & (frame[global_] >= 0.5)
+            (frame[local] >= 0.5) & (frame[global_] >= 0.5)
         ).astype(float)
 
     return frame
 
 
 def feature_columns(frame: pd.DataFrame) -> list[str]:
-    score_features = [
-        score_column_name(spec.display_model)
-        for spec in BASE_MODELS
-    ]
+    score_features = [score_column_name(spec.display_model) for spec in BASE_MODELS]
 
     engineered_features = [
-        column
-        for column in frame.columns
-        if column.startswith("rescue__")
+        column for column in frame.columns if column.startswith("rescue__")
     ]
 
     context_features = [
@@ -721,9 +701,7 @@ def main() -> None:
             full_seed_frame["row_index"].to_numpy(dtype=int),
             expected_row_index,
         ):
-            raise ValueError(
-                f"seed={seed} row_index is not contiguous after sorting"
-            )
+            raise ValueError(f"seed={seed} row_index is not contiguous after sorting")
 
         full_kepid = full_seed_frame["kepid"].to_numpy(dtype=int)
         full_kepoi_name = full_seed_frame["kepoi_name"].astype(str).to_numpy()
@@ -780,7 +758,9 @@ def main() -> None:
             }
 
     if final_payload is None:
-        raise RuntimeError(f"did not capture final rescue stacker for seed={FINAL_MODEL_SEED}")
+        raise RuntimeError(
+            f"did not capture final rescue stacker for seed={FINAL_MODEL_SEED}"
+        )
 
     METRICS_DIR.mkdir(parents=True, exist_ok=True)
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
@@ -803,8 +783,7 @@ def main() -> None:
     print()
     print("coefficient summary:")
     print(
-        coefficients
-        .groupby("feature")["coefficient"]
+        coefficients.groupby("feature")["coefficient"]
         .agg(["mean", "std", "min", "max"])
         .reset_index()
         .assign(abs_mean=lambda frame: frame["mean"].abs())

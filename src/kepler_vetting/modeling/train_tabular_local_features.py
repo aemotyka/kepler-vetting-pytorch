@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 import pickle
 
 import numpy as np
@@ -42,7 +41,9 @@ PER_SEED_METRICS_PATH = METRICS_DIR / "tabular_local_features_metrics_by_seed.cs
 SUMMARY_METRICS_PATH = METRICS_DIR / "tabular_local_features_metrics_summary.csv"
 PREDICTIONS_PATH = METRICS_DIR / "tabular_local_features_predictions.csv"
 COEFFICIENTS_PATH = METRICS_DIR / "tabular_local_features_coefficients_by_seed.csv"
-COEFFICIENT_SUMMARY_PATH = METRICS_DIR / "tabular_local_features_coefficients_summary.csv"
+COEFFICIENT_SUMMARY_PATH = (
+    METRICS_DIR / "tabular_local_features_coefficients_summary.csv"
+)
 MODEL_PATH = MODEL_DIR / "tabular_local_features_logistic_regression.pkl"
 
 

@@ -20,8 +20,12 @@ DISPOSITION_SUMMARY_PATH = METRICS_DIR / "tabular_vs_fused_disposition_summary.c
 FEATURE_SUMMARY_PATH = METRICS_DIR / "tabular_vs_fused_feature_summary.csv"
 
 FEATURE_DIFFERENCES_PATH = METRICS_DIR / "tabular_vs_fused_feature_differences.csv"
-RECURRING_CHANGED_ROWS_PATH = METRICS_DIR / "tabular_vs_fused_recurring_changed_rows.csv"
-STRONGEST_DISAGREEMENTS_PATH = METRICS_DIR / "tabular_vs_fused_strongest_disagreements.csv"
+RECURRING_CHANGED_ROWS_PATH = (
+    METRICS_DIR / "tabular_vs_fused_recurring_changed_rows.csv"
+)
+STRONGEST_DISAGREEMENTS_PATH = (
+    METRICS_DIR / "tabular_vs_fused_strongest_disagreements.csv"
+)
 
 
 METRIC_VARIANT_ORDER = {
@@ -125,7 +129,9 @@ def sort_columns(frame: pd.DataFrame) -> pd.DataFrame:
     frame = frame.copy()
 
     if "metric_variant" in frame.columns:
-        frame["metric_variant_order"] = frame["metric_variant"].map(METRIC_VARIANT_ORDER)
+        frame["metric_variant_order"] = frame["metric_variant"].map(
+            METRIC_VARIANT_ORDER
+        )
 
     if "split" in frame.columns:
         frame["split_order"] = frame["split"].map(SPLIT_ORDER)
@@ -262,20 +268,16 @@ def load_feature_summary() -> pd.DataFrame:
 
 
 def build_feature_differences(feature_summary: pd.DataFrame) -> pd.DataFrame:
-    pivot = (
-        feature_summary
-        .pivot_table(
-            index=[
-                "metric_variant",
-                "split",
-                "feature",
-            ],
-            columns="outcome",
-            values="mean",
-            aggfunc="first",
-        )
-        .reset_index()
-    )
+    pivot = feature_summary.pivot_table(
+        index=[
+            "metric_variant",
+            "split",
+            "feature",
+        ],
+        columns="outcome",
+        values="mean",
+        aggfunc="first",
+    ).reset_index()
 
     for outcome in [
         "fused_only_correct",
@@ -294,13 +296,12 @@ def build_feature_differences(feature_summary: pd.DataFrame) -> pd.DataFrame:
     )
 
     pivot["mean_diff_fused_only_minus_tabular_only"] = (
-        pivot["fused_only_correct_mean"]
-        - pivot["tabular_only_correct_mean"]
+        pivot["fused_only_correct_mean"] - pivot["tabular_only_correct_mean"]
     )
 
-    pivot["abs_mean_diff_fused_only_vs_tabular_only"] = (
-        pivot["mean_diff_fused_only_minus_tabular_only"].abs()
-    )
+    pivot["abs_mean_diff_fused_only_vs_tabular_only"] = pivot[
+        "mean_diff_fused_only_minus_tabular_only"
+    ].abs()
 
     pivot["metric_variant_order"] = pivot["metric_variant"].map(METRIC_VARIANT_ORDER)
     pivot["split_order"] = pivot["split"].map(SPLIT_ORDER)
@@ -339,21 +340,17 @@ def build_recurring_changed_rows(changed_predictions: pd.DataFrame) -> pd.DataFr
         "outcome",
     ]
 
-    recurring = (
-        changed_predictions
-        .groupby(group_columns, as_index=False)
-        .agg(
-            seed_count=("seed", "nunique"),
-            mean_tabular_score=("tabular_score", "mean"),
-            mean_fused_score=("fused_score", "mean"),
-            mean_score_delta_fused_minus_tabular=(
-                "score_delta_fused_minus_tabular",
-                "mean",
-            ),
-            mean_abs_score_delta=("abs_score_delta", "mean"),
-            mean_tabular_pred=("tabular_pred", "mean"),
-            mean_fused_pred=("fused_pred", "mean"),
-        )
+    recurring = changed_predictions.groupby(group_columns, as_index=False).agg(
+        seed_count=("seed", "nunique"),
+        mean_tabular_score=("tabular_score", "mean"),
+        mean_fused_score=("fused_score", "mean"),
+        mean_score_delta_fused_minus_tabular=(
+            "score_delta_fused_minus_tabular",
+            "mean",
+        ),
+        mean_abs_score_delta=("abs_score_delta", "mean"),
+        mean_tabular_pred=("tabular_pred", "mean"),
+        mean_fused_pred=("fused_pred", "mean"),
     )
 
     recurring["metric_variant_order"] = recurring["metric_variant"].map(
@@ -421,11 +418,7 @@ def print_table(
     if top_n is not None:
         display = display.head(top_n)
 
-    display_columns = [
-        column
-        for column in columns
-        if column in display.columns
-    ]
+    display_columns = [column for column in columns if column in display.columns]
 
     print(
         display[display_columns].to_string(
@@ -456,7 +449,6 @@ def main() -> None:
 
     error_summary = load_error_summary()
     changed_predictions = load_changed_predictions()
-    disposition_summary = load_disposition_summary()
     feature_summary = load_feature_summary()
 
     feature_differences = build_feature_differences(feature_summary)

@@ -55,10 +55,14 @@ CLASS_NAMES = {
 METRICS_DIR = RUN_METRICS_DIR
 MODEL_DIR = RUN_MODEL_DIR
 
-PER_SEED_METRICS_PATH = METRICS_DIR / "three_class_fused_local_model_metrics_by_seed.csv"
+PER_SEED_METRICS_PATH = (
+    METRICS_DIR / "three_class_fused_local_model_metrics_by_seed.csv"
+)
 SUMMARY_METRICS_PATH = METRICS_DIR / "three_class_fused_local_model_metrics_summary.csv"
 PREDICTIONS_PATH = METRICS_DIR / "three_class_fused_local_model_predictions.csv"
-TRAINING_HISTORY_PATH = METRICS_DIR / "three_class_fused_local_model_training_history.csv"
+TRAINING_HISTORY_PATH = (
+    METRICS_DIR / "three_class_fused_local_model_training_history.csv"
+)
 MODEL_PATH = MODEL_DIR / "three_class_fused_tabular_local_cnn.pt"
 
 
@@ -167,8 +171,7 @@ def describe_three_class_targets(
     frame["class_name"] = frame["three_class_target"].map(CLASS_NAMES)
 
     return (
-        frame
-        .groupby(
+        frame.groupby(
             [
                 "binary_label",
                 "disposition",
@@ -495,8 +498,7 @@ def main() -> None:
 
             val_probs = softmax_np(val_logits)
             val_planet_like_score = (
-                val_probs[:, CANDIDATE_CLASS]
-                + val_probs[:, CONFIRMED_CLASS]
+                val_probs[:, CANDIDATE_CLASS] + val_probs[:, CONFIRMED_CLASS]
             )
 
             val_auc = evaluate_predictions(
@@ -514,9 +516,15 @@ def main() -> None:
                     "train_loss": train_loss,
                     "val_loss": val_loss,
                     "val_binary_roc_auc": val_auc,
-                    "false_positive_class_weight": float(class_weights[FALSE_POSITIVE_CLASS].detach().cpu()),
-                    "candidate_class_weight": float(class_weights[CANDIDATE_CLASS].detach().cpu()),
-                    "confirmed_class_weight": float(class_weights[CONFIRMED_CLASS].detach().cpu()),
+                    "false_positive_class_weight": float(
+                        class_weights[FALSE_POSITIVE_CLASS].detach().cpu()
+                    ),
+                    "candidate_class_weight": float(
+                        class_weights[CANDIDATE_CLASS].detach().cpu()
+                    ),
+                    "confirmed_class_weight": float(
+                        class_weights[CONFIRMED_CLASS].detach().cpu()
+                    ),
                 }
             )
 
@@ -553,10 +561,7 @@ def main() -> None:
             )
 
             probs = softmax_np(logits)
-            planet_like_score = (
-                probs[:, CANDIDATE_CLASS]
-                + probs[:, CONFIRMED_CLASS]
-            )
+            planet_like_score = probs[:, CANDIDATE_CLASS] + probs[:, CONFIRMED_CLASS]
             predicted_class = probs.argmax(axis=1).astype(np.int64)
             targets_int = y_binary[indices].astype(np.int64)
 
@@ -572,9 +577,15 @@ def main() -> None:
             record["best_val_loss"] = best_val_loss
             record["local_train_mean"] = local_train_mean
             record["local_train_std"] = local_train_std
-            record["false_positive_class_weight"] = float(class_weights[FALSE_POSITIVE_CLASS].detach().cpu())
-            record["candidate_class_weight"] = float(class_weights[CANDIDATE_CLASS].detach().cpu())
-            record["confirmed_class_weight"] = float(class_weights[CONFIRMED_CLASS].detach().cpu())
+            record["false_positive_class_weight"] = float(
+                class_weights[FALSE_POSITIVE_CLASS].detach().cpu()
+            )
+            record["candidate_class_weight"] = float(
+                class_weights[CANDIDATE_CLASS].detach().cpu()
+            )
+            record["confirmed_class_weight"] = float(
+                class_weights[CONFIRMED_CLASS].detach().cpu()
+            )
 
             metrics_rows.append(record)
 
@@ -595,12 +606,10 @@ def main() -> None:
             predictions["three_class_target"] = three_class_targets
             predictions["three_class_pred"] = predicted_class
             predictions["three_class_target_name"] = [
-                CLASS_NAMES[int(value)]
-                for value in three_class_targets
+                CLASS_NAMES[int(value)] for value in three_class_targets
             ]
             predictions["three_class_pred_name"] = [
-                CLASS_NAMES[int(value)]
-                for value in predicted_class
+                CLASS_NAMES[int(value)] for value in predicted_class
             ]
 
             prediction_frames.append(predictions)
@@ -623,9 +632,15 @@ def main() -> None:
                 "architecture": "ThreeClassFusedTabularLocalCNN",
                 "training_target": "three_class_disposition",
                 "class_names": CLASS_NAMES,
-                "false_positive_class_weight": float(class_weights[FALSE_POSITIVE_CLASS].detach().cpu()),
-                "candidate_class_weight": float(class_weights[CANDIDATE_CLASS].detach().cpu()),
-                "confirmed_class_weight": float(class_weights[CONFIRMED_CLASS].detach().cpu()),
+                "false_positive_class_weight": float(
+                    class_weights[FALSE_POSITIVE_CLASS].detach().cpu()
+                ),
+                "candidate_class_weight": float(
+                    class_weights[CANDIDATE_CLASS].detach().cpu()
+                ),
+                "confirmed_class_weight": float(
+                    class_weights[CONFIRMED_CLASS].detach().cpu()
+                ),
             }
 
     if final_model_payload is None:

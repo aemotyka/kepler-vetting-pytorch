@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 import pickle
 
 import numpy as np
@@ -158,7 +157,9 @@ def load_unstandardized_tabular_features(data: np.lib.npyio.NpzFile) -> np.ndarr
     return standardized * feature_stds + feature_means
 
 
-def fit_models(x_train: np.ndarray, y_train: np.ndarray, seed: int) -> dict[str, object]:
+def fit_models(
+    x_train: np.ndarray, y_train: np.ndarray, seed: int
+) -> dict[str, object]:
     return {
         "dummy_most_frequent": DummyClassifier(strategy="most_frequent"),
         "logistic_regression": LogisticRegression(
@@ -183,15 +184,13 @@ def summarize_metrics(metrics: pd.DataFrame) -> pd.DataFrame:
     ]
 
     summary = (
-        metrics
-        .groupby(["model", "split"])[metric_columns]
+        metrics.groupby(["model", "split"])[metric_columns]
         .agg(["mean", "std", "min", "max"])
         .reset_index()
     )
 
     summary.columns = [
-        "_".join(col).rstrip("_")
-        for col in summary.columns.to_flat_index()
+        "_".join(col).rstrip("_") for col in summary.columns.to_flat_index()
     ]
 
     return summary
@@ -199,8 +198,7 @@ def summarize_metrics(metrics: pd.DataFrame) -> pd.DataFrame:
 
 def summarize_coefficients(coefficients: pd.DataFrame) -> pd.DataFrame:
     summary = (
-        coefficients
-        .groupby("feature", as_index=False)
+        coefficients.groupby("feature", as_index=False)
         .agg(
             coefficient_mean=("coefficient", "mean"),
             coefficient_std=("coefficient", "std"),

@@ -56,7 +56,7 @@ def parse_limit_per_class(value: str) -> int | None:
 
 
 def bytes_to_gib(value: int | float) -> float:
-    return float(value) / (1024.0 ** 3)
+    return float(value) / (1024.0**3)
 
 
 def kepler_lightcurve_dir(kepid: int) -> str:
@@ -98,9 +98,7 @@ def list_long_cadence_fits(directory_url: str) -> list[str]:
     hrefs = re.findall(r'href=["\']([^"\']+)["\']', html)
 
     return sorted(
-        urljoin(directory_url, href)
-        for href in hrefs
-        if href.endswith("_llc.fits")
+        urljoin(directory_url, href) for href in hrefs if href.endswith("_llc.fits")
     )
 
 
@@ -151,11 +149,7 @@ def load_candidate_rows(limit_per_class: int | None) -> list[dict]:
 
     df = pd.read_csv(KOI_PATH)
 
-    missing = [
-        column
-        for column in REQUIRED_COLUMNS
-        if column not in df.columns
-    ]
+    missing = [column for column in REQUIRED_COLUMNS if column not in df.columns]
 
     if missing:
         raise ValueError(f"KOI table is missing required columns: {missing}")
@@ -211,7 +205,9 @@ def summarize_records(
         return pd.DataFrame(
             [
                 {
-                    "limit_per_class": "all" if limit_per_class is None else limit_per_class,
+                    "limit_per_class": "all"
+                    if limit_per_class is None
+                    else limit_per_class,
                     "max_files_per_target": max_files_per_target,
                     "n_targets": 0,
                     "n_positive_targets": 0,
@@ -241,7 +237,7 @@ def summarize_records(
         estimated_total_size_bytes = known_size_bytes + (
             n_size_unknown_fits * mean_known_size_bytes
         )
-        mean_known_file_size_mib = mean_known_size_bytes / (1024.0 ** 2)
+        mean_known_file_size_mib = mean_known_size_bytes / (1024.0**2)
         estimated_total_size_gib = bytes_to_gib(estimated_total_size_bytes)
     else:
         mean_known_file_size_mib = float("nan")
@@ -250,7 +246,9 @@ def summarize_records(
     return pd.DataFrame(
         [
             {
-                "limit_per_class": "all" if limit_per_class is None else limit_per_class,
+                "limit_per_class": "all"
+                if limit_per_class is None
+                else limit_per_class,
                 "max_files_per_target": max_files_per_target,
                 "n_targets": int(frame.shape[0]),
                 "n_positive_targets": int((frame["binary_label"] == 1).sum()),

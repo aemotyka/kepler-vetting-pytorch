@@ -50,10 +50,16 @@ CONFIRMED_WEIGHT = 1.0
 METRICS_DIR = RUN_METRICS_DIR
 MODEL_DIR = RUN_MODEL_DIR
 
-PER_SEED_METRICS_PATH = METRICS_DIR / "candidate_weighted_fused_local_model_metrics_by_seed.csv"
-SUMMARY_METRICS_PATH = METRICS_DIR / "candidate_weighted_fused_local_model_metrics_summary.csv"
+PER_SEED_METRICS_PATH = (
+    METRICS_DIR / "candidate_weighted_fused_local_model_metrics_by_seed.csv"
+)
+SUMMARY_METRICS_PATH = (
+    METRICS_DIR / "candidate_weighted_fused_local_model_metrics_summary.csv"
+)
 PREDICTIONS_PATH = METRICS_DIR / "candidate_weighted_fused_local_model_predictions.csv"
-TRAINING_HISTORY_PATH = METRICS_DIR / "candidate_weighted_fused_local_model_training_history.csv"
+TRAINING_HISTORY_PATH = (
+    METRICS_DIR / "candidate_weighted_fused_local_model_training_history.csv"
+)
 MODEL_PATH = MODEL_DIR / "candidate_weighted_fused_tabular_local_cnn.pt"
 
 
@@ -111,8 +117,7 @@ def describe_sample_weights(
     )
 
     return (
-        frame
-        .groupby(
+        frame.groupby(
             [
                 "binary_label",
                 "disposition",

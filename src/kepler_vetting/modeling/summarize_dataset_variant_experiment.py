@@ -62,11 +62,7 @@ def load_test_summaries() -> pd.DataFrame:
     ]
 
     return combined[
-        [
-            column
-            for column in preferred_columns
-            if column in combined.columns
-        ]
+        [column for column in preferred_columns if column in combined.columns]
     ]
 
 
@@ -101,7 +97,9 @@ def main() -> None:
     print("successful_processed_manifest_rows:", int(successful_manifest.shape[0]))
     print("model_ready_rows:", int(ready["labels"].shape[0]))
     print("model_ready_manifest_rows:", int(ready_manifest.shape[0]))
-    print("excluded_from_model_ready_rows:", int((~readiness_report["model_ready"]).sum()))
+    print(
+        "excluded_from_model_ready_rows:", int((~readiness_report["model_ready"]).sum())
+    )
     print("processed_global_shape:", processed["global_view"].shape)
     print("processed_local_shape:", processed["local_view"].shape)
     print("model_ready_global_shape:", ready["global_view"].shape)

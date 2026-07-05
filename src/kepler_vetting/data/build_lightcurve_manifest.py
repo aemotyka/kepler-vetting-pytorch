@@ -116,9 +116,7 @@ def list_long_cadence_fits(directory_url: str) -> list[str]:
     hrefs = re.findall(r'href=["\']([^"\']+)["\']', html)
 
     return sorted(
-        urljoin(directory_url, href)
-        for href in hrefs
-        if href.endswith("_llc.fits")
+        urljoin(directory_url, href) for href in hrefs if href.endswith("_llc.fits")
     )
 
 
@@ -128,11 +126,7 @@ def load_koi_table() -> pd.DataFrame:
 
     df = pd.read_csv(KOI_PATH)
 
-    missing = [
-        column
-        for column in REQUIRED_KOI_COLUMNS
-        if column not in df.columns
-    ]
+    missing = [column for column in REQUIRED_KOI_COLUMNS if column not in df.columns]
 
     if missing:
         raise ValueError(f"KOI table is missing required columns: {missing}")
@@ -249,11 +243,7 @@ def load_scale_estimate(path: Path) -> pd.DataFrame:
         "selected_fits_urls",
     ]
 
-    missing = [
-        column
-        for column in required_columns
-        if column not in frame.columns
-    ]
+    missing = [column for column in required_columns if column not in frame.columns]
 
     if missing:
         raise ValueError(f"scale estimate is missing required columns: {missing}")
@@ -363,6 +353,7 @@ def build_manifest_from_scale_estimate(
 
     return pd.DataFrame(records)
 
+
 def manifest_record_from_row(
     row: pd.Series,
     directory_url: str,
@@ -393,11 +384,7 @@ def manifest_record_from_row(
 
 
 def validate_manifest(manifest: pd.DataFrame) -> None:
-    missing = [
-        column
-        for column in MANIFEST_COLUMNS
-        if column not in manifest.columns
-    ]
+    missing = [column for column in MANIFEST_COLUMNS if column not in manifest.columns]
 
     if missing:
         raise ValueError(f"manifest is missing required columns: {missing}")
@@ -412,13 +399,14 @@ def validate_manifest(manifest: pd.DataFrame) -> None:
     if set(manifest["binary_label"].tolist()) - {0, 1}:
         raise ValueError("manifest binary_label must only contain 0/1 values")
 
-    missing_urls = (
-        manifest["selected_fits_urls"].isna()
-        | (manifest["selected_fits_urls"].astype(str).str.len() == 0)
+    missing_urls = manifest["selected_fits_urls"].isna() | (
+        manifest["selected_fits_urls"].astype(str).str.len() == 0
     )
 
     if missing_urls.any():
-        raise ValueError(f"manifest contains {int(missing_urls.sum())} rows without FITS URLs")
+        raise ValueError(
+            f"manifest contains {int(missing_urls.sum())} rows without FITS URLs"
+        )
 
 
 def write_manifest(manifest: pd.DataFrame, out_path: Path) -> None:
@@ -435,7 +423,10 @@ def write_manifest(manifest: pd.DataFrame, out_path: Path) -> None:
     print(manifest["binary_label"].value_counts().sort_index())
     print("disposition_counts:")
     print(manifest["koi_disposition"].value_counts())
-    print("selected_fits_count:", int(manifest["selected_fits_urls"].str.split("|").map(len).sum()))
+    print(
+        "selected_fits_count:",
+        int(manifest["selected_fits_urls"].str.split("|").map(len).sum()),
+    )
     print("unique_kepids:", int(manifest["kepid"].nunique()))
 
 

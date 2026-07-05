@@ -31,11 +31,19 @@ FUSED_PREDICTIONS_PATH = METRICS_DIR / "fused_local_model_predictions.csv"
 
 POSITIVE_DECISIONS_PATH = METRICS_DIR / "fused_positive_failure_decisions.csv"
 RECURRING_FAILURES_PATH = METRICS_DIR / "fused_positive_failure_recurring_rows.csv"
-DISPOSITION_SUMMARY_PATH = METRICS_DIR / "fused_positive_failure_disposition_summary.csv"
-SCORE_BUCKET_SUMMARY_PATH = METRICS_DIR / "fused_positive_failure_score_bucket_summary.csv"
+DISPOSITION_SUMMARY_PATH = (
+    METRICS_DIR / "fused_positive_failure_disposition_summary.csv"
+)
+SCORE_BUCKET_SUMMARY_PATH = (
+    METRICS_DIR / "fused_positive_failure_score_bucket_summary.csv"
+)
 FEATURE_SUMMARY_PATH = METRICS_DIR / "fused_positive_failure_feature_summary.csv"
-FEATURE_DIFFERENCES_PATH = METRICS_DIR / "fused_positive_failure_feature_differences.csv"
-OTHER_MODEL_CORRECTIONS_PATH = METRICS_DIR / "fused_positive_failure_other_model_corrections.csv"
+FEATURE_DIFFERENCES_PATH = (
+    METRICS_DIR / "fused_positive_failure_feature_differences.csv"
+)
+OTHER_MODEL_CORRECTIONS_PATH = (
+    METRICS_DIR / "fused_positive_failure_other_model_corrections.csv"
+)
 PLOT_TARGETS_PATH = METRICS_DIR / "fused_positive_failure_plot_targets.csv"
 
 
@@ -90,7 +98,7 @@ OTHER_MODEL_SPECS = [
         "model_name": "fused_tabular_local_transit_set_cnn",
         "path": METRICS_DIR / "fused_local_transit_set_model_predictions.csv",
     },
-        {
+    {
         "display_model": "rescue_stacked_logistic_regression",
         "model_name": "rescue_stacked_logistic_regression",
         "path": METRICS_DIR / "rescue_stacked_model_predictions.csv",
@@ -247,12 +255,20 @@ def validate_prediction_rows_against_npz(
             )
 
         if len(np.unique(row_index)) != n_rows:
-            raise ValueError(f"{display_model} seed={seed} has duplicate row_index values")
+            raise ValueError(
+                f"{display_model} seed={seed} has duplicate row_index values"
+            )
 
-        if not np.array_equal(seed_frame["y_true"].to_numpy(dtype=int), labels[row_index]):
-            raise ValueError(f"{display_model} seed={seed} y_true does not match labels")
+        if not np.array_equal(
+            seed_frame["y_true"].to_numpy(dtype=int), labels[row_index]
+        ):
+            raise ValueError(
+                f"{display_model} seed={seed} y_true does not match labels"
+            )
 
-        if not np.array_equal(seed_frame["kepid"].to_numpy(dtype=int), kepid[row_index]):
+        if not np.array_equal(
+            seed_frame["kepid"].to_numpy(dtype=int), kepid[row_index]
+        ):
             raise ValueError(f"{display_model} seed={seed} kepid mismatch")
 
         if not np.array_equal(
@@ -265,9 +281,7 @@ def validate_prediction_rows_against_npz(
 def load_context(data: np.lib.npyio.NpzFile) -> pd.DataFrame:
     require_file(MODEL_READY_MANIFEST_PATH)
 
-    manifest = pd.read_csv(MODEL_READY_MANIFEST_PATH).reset_index(
-        names="row_index"
-    )
+    manifest = pd.read_csv(MODEL_READY_MANIFEST_PATH).reset_index(names="row_index")
 
     n_rows = data["labels"].shape[0]
 
@@ -381,13 +395,12 @@ def build_positive_decisions(
 ) -> pd.DataFrame:
     columns = prediction_columns(MODEL_NAME)
 
-    positives = fused[
-        (fused["split"] == target_split)
-        & (fused["y_true"] == 1)
-    ].copy()
+    positives = fused[(fused["split"] == target_split) & (fused["y_true"] == 1)].copy()
 
     if positives.empty:
-        raise ValueError(f"no positive fused predictions found for split={target_split}")
+        raise ValueError(
+            f"no positive fused predictions found for split={target_split}"
+        )
 
     positives = positives.rename(
         columns={
@@ -446,15 +459,13 @@ def add_other_model_diagnostics(
         if columns["pred"] not in decisions.columns:
             continue
 
-        decisions[f"{model}__corrects_fused_fn"] = (
-            decisions["fused_false_negative"]
-            & (decisions[columns["pred"]] == 1)
+        decisions[f"{model}__corrects_fused_fn"] = decisions["fused_false_negative"] & (
+            decisions[columns["pred"]] == 1
         )
 
-        decisions[f"{model}__also_misses_fused_fn"] = (
-            decisions["fused_false_negative"]
-            & (decisions[columns["pred"]] == 0)
-        )
+        decisions[f"{model}__also_misses_fused_fn"] = decisions[
+            "fused_false_negative"
+        ] & (decisions[columns["pred"]] == 0)
 
     if pred_columns:
         decisions["any_other_model_corrects_fused_fn"] = (
@@ -463,48 +474,43 @@ def add_other_model_diagnostics(
             .any(axis=1)
         )
         decisions["all_available_models_miss_positive"] = (
-            decisions[["fused_pred", *pred_columns]]
-            .eq(0)
-            .all(axis=1)
+            decisions[["fused_pred", *pred_columns]].eq(0).all(axis=1)
         )
     else:
         decisions["any_other_model_corrects_fused_fn"] = False
-        decisions["all_available_models_miss_positive"] = decisions["fused_false_negative"]
+        decisions["all_available_models_miss_positive"] = decisions[
+            "fused_false_negative"
+        ]
 
-    decisions["any_other_model_corrects_fused_fn"] = (
-        decisions["any_other_model_corrects_fused_fn"].fillna(False)
-    )
+    decisions["any_other_model_corrects_fused_fn"] = decisions[
+        "any_other_model_corrects_fused_fn"
+    ].fillna(False)
 
     return decisions
 
 
 def summarize_by_disposition(decisions: pd.DataFrame) -> pd.DataFrame:
-    summary = (
-        decisions
-        .groupby("display_disposition", as_index=False)
-        .agg(
-            positive_decisions=("row_index", "count"),
-            unique_positive_rows=("row_index", "nunique"),
-            fused_false_negative_decisions=("fused_false_negative", "sum"),
-            fused_true_positive_decisions=("fused_true_positive", "sum"),
-            mean_fused_score=("fused_score", "mean"),
-            median_fused_score=("fused_score", "median"),
-            min_fused_score=("fused_score", "min"),
-            max_fused_score=("fused_score", "max"),
-            any_other_model_corrections=(
-                "any_other_model_corrects_fused_fn",
-                "sum",
-            ),
-            all_available_models_miss_positive=(
-                "all_available_models_miss_positive",
-                "sum",
-            ),
-        )
+    summary = decisions.groupby("display_disposition", as_index=False).agg(
+        positive_decisions=("row_index", "count"),
+        unique_positive_rows=("row_index", "nunique"),
+        fused_false_negative_decisions=("fused_false_negative", "sum"),
+        fused_true_positive_decisions=("fused_true_positive", "sum"),
+        mean_fused_score=("fused_score", "mean"),
+        median_fused_score=("fused_score", "median"),
+        min_fused_score=("fused_score", "min"),
+        max_fused_score=("fused_score", "max"),
+        any_other_model_corrections=(
+            "any_other_model_corrects_fused_fn",
+            "sum",
+        ),
+        all_available_models_miss_positive=(
+            "all_available_models_miss_positive",
+            "sum",
+        ),
     )
 
     summary["fused_false_negative_rate"] = (
-        summary["fused_false_negative_decisions"]
-        / summary["positive_decisions"]
+        summary["fused_false_negative_decisions"] / summary["positive_decisions"]
     )
 
     return summary.sort_values(
@@ -520,26 +526,21 @@ def summarize_by_disposition(decisions: pd.DataFrame) -> pd.DataFrame:
 
 
 def summarize_score_buckets(decisions: pd.DataFrame) -> pd.DataFrame:
-    summary = (
-        decisions
-        .groupby(
-            [
-                "display_disposition",
-                "score_bucket",
-            ],
-            as_index=False,
-        )
-        .agg(
-            positive_decisions=("row_index", "count"),
-            fused_false_negative_decisions=("fused_false_negative", "sum"),
-            mean_fused_score=("fused_score", "mean"),
-        )
+    summary = decisions.groupby(
+        [
+            "display_disposition",
+            "score_bucket",
+        ],
+        as_index=False,
+    ).agg(
+        positive_decisions=("row_index", "count"),
+        fused_false_negative_decisions=("fused_false_negative", "sum"),
+        mean_fused_score=("fused_score", "mean"),
     )
 
-    summary["fused_false_negative_rate"] = (
-        summary["fused_false_negative_decisions"]
-        / summary["positive_decisions"].clip(lower=1)
-    )
+    summary["fused_false_negative_rate"] = summary[
+        "fused_false_negative_decisions"
+    ] / summary["positive_decisions"].clip(lower=1)
 
     return summary
 
@@ -621,19 +622,15 @@ def build_feature_differences(feature_summary: pd.DataFrame) -> pd.DataFrame:
     if feature_summary.empty:
         return pd.DataFrame()
 
-    pivot = (
-        feature_summary
-        .pivot_table(
-            index=[
-                "display_disposition",
-                "feature",
-            ],
-            columns="fused_error_type",
-            values="mean",
-            aggfunc="first",
-        )
-        .reset_index()
-    )
+    pivot = feature_summary.pivot_table(
+        index=[
+            "display_disposition",
+            "feature",
+        ],
+        columns="fused_error_type",
+        values="mean",
+        aggfunc="first",
+    ).reset_index()
 
     for column in [
         "false_negative",
@@ -652,9 +649,9 @@ def build_feature_differences(feature_summary: pd.DataFrame) -> pd.DataFrame:
     pivot["mean_diff_false_negative_minus_true_positive"] = (
         pivot["false_negative_mean"] - pivot["true_positive_mean"]
     )
-    pivot["abs_mean_diff_false_negative_vs_true_positive"] = (
-        pivot["mean_diff_false_negative_minus_true_positive"].abs()
-    )
+    pivot["abs_mean_diff_false_negative_vs_true_positive"] = pivot[
+        "mean_diff_false_negative_minus_true_positive"
+    ].abs()
 
     return pivot.sort_values(
         [
@@ -700,16 +697,20 @@ def summarize_other_model_corrections(
             }
         )
 
-    return pd.DataFrame(rows).sort_values(
-        [
-            "corrected_decisions",
-            "correction_rate",
-        ],
-        ascending=[
-            False,
-            False,
-        ],
-    ).reset_index(drop=True)
+    return (
+        pd.DataFrame(rows)
+        .sort_values(
+            [
+                "corrected_decisions",
+                "correction_rate",
+            ],
+            ascending=[
+                False,
+                False,
+            ],
+        )
+        .reset_index(drop=True)
+    )
 
 
 def summarize_recurring_failures(
@@ -740,24 +741,19 @@ def summarize_recurring_failures(
         if columns["pred"] in decisions.columns:
             aggregations[f"positive_pred_count__{model}"] = (columns["pred"], "sum")
 
-    recurring = (
-        decisions
-        .groupby(
-            [
-                "row_index",
-                "kepid",
-                "kepoi_name",
-                "display_disposition",
-            ],
-            as_index=False,
-        )
-        .agg(**aggregations)
-    )
+    recurring = decisions.groupby(
+        [
+            "row_index",
+            "kepid",
+            "kepoi_name",
+            "display_disposition",
+        ],
+        as_index=False,
+    ).agg(**aggregations)
 
-    recurring["fused_false_negative_rate"] = (
-        recurring["fused_false_negative_count"]
-        / recurring["test_appearances"].clip(lower=1)
-    )
+    recurring["fused_false_negative_rate"] = recurring[
+        "fused_false_negative_count"
+    ] / recurring["test_appearances"].clip(lower=1)
 
     return recurring.sort_values(
         [
@@ -798,10 +794,10 @@ def plot_failure_row(
     local_view = data["local_view"][row_index]
 
     title_base = (
-        f'{row["kepoi_name"]} / KIC {row["kepid"]} / '
-        f'{row["display_disposition"]} / '
-        f'FN count={int(row["fused_false_negative_count"])} / '
-        f'mean fused score={float(row["mean_fused_score"]):.3f}'
+        f"{row['kepoi_name']} / KIC {row['kepid']} / "
+        f"{row['display_disposition']} / "
+        f"FN count={int(row['fused_false_negative_count'])} / "
+        f"mean fused score={float(row['mean_fused_score']):.3f}"
     )
 
     fig, axes = plt.subplots(2, 1, figsize=(10, 7), sharey=False)
@@ -843,7 +839,7 @@ def write_failure_plots(
 
     for rank, (_, row) in enumerate(targets.iterrows(), start=1):
         name = safe_filename(
-            f'{rank:02d}_{row["kepoi_name"]}_{row["kepid"]}_{row["display_disposition"]}'
+            f"{rank:02d}_{row['kepoi_name']}_{row['kepid']}_{row['display_disposition']}"
         )
         output_path = FIGURES_DIR / f"{name}.png"
 
@@ -880,13 +876,7 @@ def print_table(
         display = display.head(top_n)
 
     if columns is not None:
-        display = display[
-            [
-                column
-                for column in columns
-                if column in display.columns
-            ]
-        ]
+        display = display[[column for column in columns if column in display.columns]]
 
     print(
         display.to_string(

@@ -49,9 +49,7 @@ FUSED_TRANSIT_SET_PREDICTIONS_PATH = (
 FUSED_LOCAL_TRANSIT_SET_PREDICTIONS_PATH = (
     METRICS_DIR / "fused_local_transit_set_model_predictions.csv"
 )
-RESCUE_STACKED_PREDICTIONS_PATH = (
-    METRICS_DIR / "rescue_stacked_model_predictions.csv"
-)
+RESCUE_STACKED_PREDICTIONS_PATH = METRICS_DIR / "rescue_stacked_model_predictions.csv"
 
 PER_SEED_METRICS_PATH = METRICS_DIR / "selective_rescue_rule_model_metrics_by_seed.csv"
 SUMMARY_METRICS_PATH = METRICS_DIR / "selective_rescue_rule_model_metrics_summary.csv"
@@ -173,8 +171,7 @@ def configured_base_model_set() -> str:
 
     if value not in {"all", "lean"}:
         raise ValueError(
-            "KEPLER_VETTING_BASE_MODEL_SET must be one of: all, lean; "
-            f"got {value!r}"
+            f"KEPLER_VETTING_BASE_MODEL_SET must be one of: all, lean; got {value!r}"
         )
 
     return value
@@ -198,15 +195,10 @@ def selected_base_models() -> list[BaseModelSpec]:
     }
 
     selected = [
-        spec
-        for spec in ALL_BASE_MODELS
-        if spec.display_model in lean_display_models
+        spec for spec in ALL_BASE_MODELS if spec.display_model in lean_display_models
     ]
 
-    missing = lean_display_models - {
-        spec.display_model
-        for spec in selected
-    }
+    missing = lean_display_models - {spec.display_model for spec in selected}
 
     if missing:
         raise ValueError(f"lean base model set is missing models: {sorted(missing)}")
@@ -216,6 +208,7 @@ def selected_base_models() -> list[BaseModelSpec]:
 
 BASE_MODEL_SET = configured_base_model_set()
 BASE_MODELS = selected_base_models()
+
 
 def require_file(path: object) -> None:
     if not path.exists():
@@ -238,6 +231,7 @@ RESCUE_SCORE_COLUMNS = [
         "fused_tabular_local_cnn",
     }
 ]
+
 
 def load_base_predictions(spec: BaseModelSpec) -> pd.DataFrame:
     require_file(spec.predictions_path)
@@ -378,7 +372,9 @@ def validate_against_model_ready_dataset(frame: pd.DataFrame) -> None:
             ordered["kepoi_name"].astype(str).to_numpy(),
             kepoi_name[ordered["row_index"].to_numpy(dtype=int)],
         ):
-            raise ValueError(f"seed={seed} kepoi_name does not match model-ready dataset")
+            raise ValueError(
+                f"seed={seed} kepoi_name does not match model-ready dataset"
+            )
 
 
 def add_rule_features(frame: pd.DataFrame) -> pd.DataFrame:
@@ -386,7 +382,11 @@ def add_rule_features(frame: pd.DataFrame) -> pd.DataFrame:
 
     missing = [
         column
-        for column in [FUSED_SCORE_COLUMN, RESCUE_STACKED_SCORE_COLUMN, *RESCUE_SCORE_COLUMNS]
+        for column in [
+            FUSED_SCORE_COLUMN,
+            RESCUE_STACKED_SCORE_COLUMN,
+            *RESCUE_SCORE_COLUMNS,
+        ]
         if column not in frame.columns
     ]
 
@@ -396,8 +396,8 @@ def add_rule_features(frame: pd.DataFrame) -> pd.DataFrame:
     frame["rule__rescue_max_score"] = frame[RESCUE_SCORE_COLUMNS].max(axis=1)
     frame["rule__rescue_mean_score"] = frame[RESCUE_SCORE_COLUMNS].mean(axis=1)
     frame["rule__rescue_vote_count"] = (
-        frame[RESCUE_SCORE_COLUMNS] >= 0.5
-    ).sum(axis=1).astype(float)
+        (frame[RESCUE_SCORE_COLUMNS] >= 0.5).sum(axis=1).astype(float)
+    )
 
     return frame
 
@@ -445,8 +445,6 @@ def apply_rule(
 
     if not np.isfinite(scores).all():
         raise ValueError("selective rescue rule produced non-finite scores")
-
-    predictions = (scores >= 0.5).astype(int)
 
     return scores, rescue_mask, veto_mask
 
@@ -709,8 +707,7 @@ def main() -> None:
     print()
     print("rule summary:")
     print(
-        rules
-        .describe(include="all")
+        rules.describe(include="all")
         .transpose()
         .to_string(
             float_format=lambda value: f"{value:.4f}",

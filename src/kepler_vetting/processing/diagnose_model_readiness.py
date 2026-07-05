@@ -100,7 +100,9 @@ def main() -> None:
                 "model_ready",
                 "model_ready_failure_reasons",
             ]
-        ].head(15).to_string(index=False)
+        ]
+        .head(15)
+        .to_string(index=False)
     )
 
     print_section("worst local missing-bin rows")
@@ -121,7 +123,9 @@ def main() -> None:
                 "model_ready",
                 "model_ready_failure_reasons",
             ]
-        ].head(15).to_string(index=False)
+        ]
+        .head(15)
+        .to_string(index=False)
     )
 
     print_section("local minima farthest from phase zero")
@@ -140,7 +144,9 @@ def main() -> None:
                 "local_min_abs_phase",
                 "model_ready",
             ]
-        ].head(15).to_string(index=False)
+        ]
+        .head(15)
+        .to_string(index=False)
     )
 
     print()

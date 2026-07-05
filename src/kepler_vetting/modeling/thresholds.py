@@ -80,7 +80,10 @@ def select_best_f1_threshold(
             best_distance_from_default = distance_from_default
             continue
 
-        if np.isclose(score, best_f1) and distance_from_default < best_distance_from_default:
+        if (
+            np.isclose(score, best_f1)
+            and distance_from_default < best_distance_from_default
+        ):
             best_threshold = float(threshold)
             best_distance_from_default = distance_from_default
 

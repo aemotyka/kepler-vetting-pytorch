@@ -60,9 +60,7 @@ FUSED_TRANSIT_SET_PREDICTIONS_PATH = (
 FUSED_LOCAL_TRANSIT_SET_PREDICTIONS_PATH = (
     METRICS_DIR / "fused_local_transit_set_model_predictions.csv"
 )
-RESCUE_STACKED_PREDICTIONS_PATH = (
-    METRICS_DIR / "rescue_stacked_model_predictions.csv"
-)
+RESCUE_STACKED_PREDICTIONS_PATH = METRICS_DIR / "rescue_stacked_model_predictions.csv"
 SELECTIVE_RESCUE_RULE_PREDICTIONS_PATH = (
     METRICS_DIR / "selective_rescue_rule_model_predictions.csv"
 )
@@ -72,7 +70,9 @@ PAIRWISE_SUMMARY_PATH = METRICS_DIR / "pairwise_model_error_summary.csv"
 PAIRWISE_CHANGED_PATH = METRICS_DIR / "pairwise_model_changed_predictions.csv"
 PAIRWISE_DISPOSITION_PATH = METRICS_DIR / "pairwise_model_disposition_summary.csv"
 PAIRWISE_FEATURE_SUMMARY_PATH = METRICS_DIR / "pairwise_model_feature_summary.csv"
-PAIRWISE_FEATURE_DIFFERENCES_PATH = METRICS_DIR / "pairwise_model_feature_differences.csv"
+PAIRWISE_FEATURE_DIFFERENCES_PATH = (
+    METRICS_DIR / "pairwise_model_feature_differences.csv"
+)
 PAIRWISE_RECURRING_PATH = METRICS_DIR / "pairwise_model_recurring_changed_rows.csv"
 PAIRWISE_STRONGEST_PATH = METRICS_DIR / "pairwise_model_strongest_disagreements.csv"
 
@@ -590,17 +590,16 @@ def sort_frame(frame: pd.DataFrame) -> pd.DataFrame:
     frame = frame.copy()
 
     if "pair_id" in frame.columns:
-        pair_order = {
-            pair.pair_id: idx
-            for idx, pair in enumerate(PAIR_SPECS)
-        }
+        pair_order = {pair.pair_id: idx for idx, pair in enumerate(PAIR_SPECS)}
         frame["pair_order"] = frame["pair_id"].map(pair_order)
 
     if "split" in frame.columns:
         frame["split_order"] = frame["split"].map(SPLIT_ORDER)
 
     if "metric_variant" in frame.columns:
-        frame["metric_variant_order"] = frame["metric_variant"].map(METRIC_VARIANT_ORDER)
+        frame["metric_variant_order"] = frame["metric_variant"].map(
+            METRIC_VARIANT_ORDER
+        )
 
     if "outcome" in frame.columns:
         frame["outcome_order"] = frame["outcome"].map(OUTCOME_ORDER)
@@ -682,14 +681,18 @@ def load_thresholds() -> pd.DataFrame:
             f"{MODEL_COMPARISON_BY_SEED_PATH} is missing required columns: {sorted(missing)}"
         )
 
-    thresholds = thresholds[
-        [
-            "model",
-            "metric_variant",
-            "seed",
-            "threshold",
+    thresholds = (
+        thresholds[
+            [
+                "model",
+                "metric_variant",
+                "seed",
+                "threshold",
+            ]
         ]
-    ].drop_duplicates().copy()
+        .drop_duplicates()
+        .copy()
+    )
 
     thresholds["seed"] = thresholds["seed"].astype(int)
     thresholds["threshold"] = thresholds["threshold"].astype(float)
@@ -735,9 +738,7 @@ def load_model_ready_context() -> pd.DataFrame:
     require_file(MODEL_READY_MANIFEST_PATH)
 
     data = np.load(MODEL_READY_NPZ_PATH)
-    manifest = pd.read_csv(MODEL_READY_MANIFEST_PATH).reset_index(
-        names="row_index"
-    )
+    manifest = pd.read_csv(MODEL_READY_MANIFEST_PATH).reset_index(names="row_index")
 
     labels = data["labels"].astype(int)
     kepid = data["kepid"].astype(int)
@@ -857,18 +858,20 @@ def build_pair_rows(
             current["right_score"] = current["planet_like_score_right"].astype(float)
 
             current["left_pred"] = (current["left_score"] >= left_threshold).astype(int)
-            current["right_pred"] = (current["right_score"] >= right_threshold).astype(int)
+            current["right_pred"] = (current["right_score"] >= right_threshold).astype(
+                int
+            )
 
             current["left_correct"] = current["left_pred"] == current["y_true"]
             current["right_correct"] = current["right_pred"] == current["y_true"]
 
-            current["prediction_changed"] = current["left_pred"] != current["right_pred"]
+            current["prediction_changed"] = (
+                current["left_pred"] != current["right_pred"]
+            )
             current["score_delta_right_minus_left"] = (
                 current["right_score"] - current["left_score"]
             )
-            current["abs_score_delta"] = current[
-                "score_delta_right_minus_left"
-            ].abs()
+            current["abs_score_delta"] = current["score_delta_right_minus_left"].abs()
 
             current["outcome"] = np.select(
                 [
@@ -928,11 +931,7 @@ def build_pair_rows(
 
 
 def attach_context(rows: pd.DataFrame, context: pd.DataFrame) -> pd.DataFrame:
-    extra_columns = [
-        column
-        for column in context.columns
-        if column not in rows.columns
-    ]
+    extra_columns = [column for column in context.columns if column not in rows.columns]
 
     context_subset = context[
         [
@@ -961,7 +960,9 @@ def summarize_pair_errors(rows: pd.DataFrame) -> pd.DataFrame:
             "split",
         ]
     ):
-        pair_id, left_display_model, right_display_model, metric_variant, split_name = group_key
+        pair_id, left_display_model, right_display_model, metric_variant, split_name = (
+            group_key
+        )
 
         both_correct = int((group["outcome"] == "both_correct").sum())
         both_wrong = int((group["outcome"] == "both_wrong").sum())
@@ -989,7 +990,8 @@ def summarize_pair_errors(rows: pd.DataFrame) -> pd.DataFrame:
                 "left_only_correct": left_only_correct,
                 "net_right_correct_gain": right_only_correct - left_only_correct,
                 "changed_prediction_count": changed_prediction_count,
-                "changed_prediction_rate": changed_prediction_count / max(group.shape[0], 1),
+                "changed_prediction_rate": changed_prediction_count
+                / max(group.shape[0], 1),
             }
         )
 
@@ -1010,8 +1012,7 @@ def summarize_by_disposition(rows: pd.DataFrame) -> pd.DataFrame:
     disp_col = disposition_column(rows)
 
     summary = (
-        rows
-        .groupby(
+        rows.groupby(
             [
                 "pair_id",
                 "metric_variant",
@@ -1054,11 +1055,7 @@ def feature_columns(rows: pd.DataFrame) -> list[str]:
         *LOCAL_DERIVED_FEATURE_NAMES,
     ]
 
-    return [
-        column
-        for column in candidates
-        if column in rows.columns
-    ]
+    return [column for column in candidates if column in rows.columns]
 
 
 def summarize_features(rows: pd.DataFrame) -> pd.DataFrame:
@@ -1102,21 +1099,17 @@ def summarize_features(rows: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_feature_differences(feature_summary: pd.DataFrame) -> pd.DataFrame:
-    pivot = (
-        feature_summary
-        .pivot_table(
-            index=[
-                "pair_id",
-                "metric_variant",
-                "split",
-                "feature",
-            ],
-            columns="outcome",
-            values="mean",
-            aggfunc="first",
-        )
-        .reset_index()
-    )
+    pivot = feature_summary.pivot_table(
+        index=[
+            "pair_id",
+            "metric_variant",
+            "split",
+            "feature",
+        ],
+        columns="outcome",
+        values="mean",
+        aggfunc="first",
+    ).reset_index()
 
     for outcome in [
         "right_only_correct",
@@ -1135,12 +1128,11 @@ def build_feature_differences(feature_summary: pd.DataFrame) -> pd.DataFrame:
     )
 
     pivot["mean_diff_right_only_minus_left_only"] = (
-        pivot["right_only_correct_mean"]
-        - pivot["left_only_correct_mean"]
+        pivot["right_only_correct_mean"] - pivot["left_only_correct_mean"]
     )
-    pivot["abs_mean_diff_right_only_vs_left_only"] = (
-        pivot["mean_diff_right_only_minus_left_only"].abs()
-    )
+    pivot["abs_mean_diff_right_only_vs_left_only"] = pivot[
+        "mean_diff_right_only_minus_left_only"
+    ].abs()
 
     pivot = pivot.sort_values(
         [
@@ -1162,8 +1154,7 @@ def build_feature_differences(feature_summary: pd.DataFrame) -> pd.DataFrame:
 
 def changed_rows(rows: pd.DataFrame) -> pd.DataFrame:
     changed = rows[
-        rows["prediction_changed"]
-        | (rows["left_correct"] != rows["right_correct"])
+        rows["prediction_changed"] | (rows["left_correct"] != rows["right_correct"])
     ].copy()
 
     if "koi_disposition" in changed.columns:
@@ -1177,33 +1168,29 @@ def changed_rows(rows: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_recurring_changed_rows(changed: pd.DataFrame) -> pd.DataFrame:
-    recurring = (
-        changed
-        .groupby(
-            [
-                "pair_id",
-                "metric_variant",
-                "row_index",
-                "kepid",
-                "kepoi_name",
-                "display_disposition",
-                "y_true",
-                "outcome",
-            ],
-            as_index=False,
-        )
-        .agg(
-            seed_count=("seed", "nunique"),
-            mean_left_score=("left_score", "mean"),
-            mean_right_score=("right_score", "mean"),
-            mean_score_delta_right_minus_left=(
-                "score_delta_right_minus_left",
-                "mean",
-            ),
-            mean_abs_score_delta=("abs_score_delta", "mean"),
-            mean_left_pred=("left_pred", "mean"),
-            mean_right_pred=("right_pred", "mean"),
-        )
+    recurring = changed.groupby(
+        [
+            "pair_id",
+            "metric_variant",
+            "row_index",
+            "kepid",
+            "kepoi_name",
+            "display_disposition",
+            "y_true",
+            "outcome",
+        ],
+        as_index=False,
+    ).agg(
+        seed_count=("seed", "nunique"),
+        mean_left_score=("left_score", "mean"),
+        mean_right_score=("right_score", "mean"),
+        mean_score_delta_right_minus_left=(
+            "score_delta_right_minus_left",
+            "mean",
+        ),
+        mean_abs_score_delta=("abs_score_delta", "mean"),
+        mean_left_pred=("left_pred", "mean"),
+        mean_right_pred=("right_pred", "mean"),
     )
 
     recurring = recurring.sort_values(
@@ -1263,11 +1250,7 @@ def print_table(
     if top_n is not None:
         display = display.head(top_n)
 
-    display_columns = [
-        column
-        for column in columns
-        if column in display.columns
-    ]
+    display_columns = [column for column in columns if column in display.columns]
 
     print(
         display[display_columns].to_string(
@@ -1385,13 +1368,11 @@ def main() -> None:
     strict_pair = "fused_vs_two_stage_rescue_gate"
 
     strict_changed = changed[
-        (changed["pair_id"] == strict_pair)
-        & (changed["split"] == "test")
+        (changed["pair_id"] == strict_pair) & (changed["split"] == "test")
     ].copy()
 
     strict_disposition = (
-        strict_changed
-        .groupby(
+        strict_changed.groupby(
             [
                 "pair_id",
                 "metric_variant",
@@ -1431,9 +1412,7 @@ def main() -> None:
         top_n=args.top_n,
     )
 
-    strict_recurring = recurring[
-        recurring["pair_id"] == strict_pair
-    ].copy()
+    strict_recurring = recurring[recurring["pair_id"] == strict_pair].copy()
 
     print_table(
         title=f"top {args.top_n} strict-pair recurring changed rows:",
@@ -1443,8 +1422,7 @@ def main() -> None:
     )
 
     strict_strongest = strongest[
-        (strongest["pair_id"] == strict_pair)
-        & (strongest["split"] == "test")
+        (strongest["pair_id"] == strict_pair) & (strongest["split"] == "test")
     ].copy()
 
     print_table(

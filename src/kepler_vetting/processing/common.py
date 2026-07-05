@@ -194,9 +194,13 @@ def validate_manifest_columns(manifest: pd.DataFrame) -> None:
     if missing:
         raise ValueError(f"manifest missing required columns: {missing}")
 
-    labels = set(pd.to_numeric(manifest["binary_label"], errors="coerce").dropna().astype(int))
+    labels = set(
+        pd.to_numeric(manifest["binary_label"], errors="coerce").dropna().astype(int)
+    )
     if not labels.issubset({0, 1}):
-        raise ValueError(f"binary_label must only contain 0/1 values; found {sorted(labels)}")
+        raise ValueError(
+            f"binary_label must only contain 0/1 values; found {sorted(labels)}"
+        )
 
 
 def read_clean_lightcurve_segment(path: Path) -> dict[str, Any]:
@@ -215,11 +219,7 @@ def read_clean_lightcurve_segment(path: Path) -> dict[str, Any]:
 
     raw_points = len(time)
 
-    clean_mask = (
-        np.isfinite(time)
-        & np.isfinite(flux)
-        & (quality == 0)
-    )
+    clean_mask = np.isfinite(time) & np.isfinite(flux) & (quality == 0)
 
     clean_time = time[clean_mask]
     clean_flux = flux[clean_mask]
@@ -253,7 +253,9 @@ def read_clean_lightcurve_segment(path: Path) -> dict[str, Any]:
     }
 
 
-def stitch_lightcurves(paths: list[Path]) -> tuple[np.ndarray, np.ndarray, dict[str, Any]]:
+def stitch_lightcurves(
+    paths: list[Path],
+) -> tuple[np.ndarray, np.ndarray, dict[str, Any]]:
     all_time = []
     all_flux = []
 
@@ -322,12 +324,7 @@ def median_bin(
     if x_max <= x_min:
         raise ValueError(f"invalid bin range: {x_min} to {x_max}")
 
-    mask = (
-        np.isfinite(x)
-        & np.isfinite(y)
-        & (x >= x_min)
-        & (x <= x_max)
-    )
+    mask = np.isfinite(x) & np.isfinite(y) & (x >= x_min) & (x <= x_max)
 
     x = x[mask]
     y = y[mask]
@@ -393,7 +390,9 @@ def transform_tabular_features(rows: list[dict[str, Any]]) -> dict[str, np.ndarr
     stds = []
 
     for feature in TABULAR_FEATURES:
-        values = pd.to_numeric(frame[feature], errors="coerce").to_numpy(dtype=np.float64)
+        values = pd.to_numeric(frame[feature], errors="coerce").to_numpy(
+            dtype=np.float64
+        )
 
         if feature in LOG1P_FEATURES:
             values = np.where(values > 0, np.log1p(values), np.nan)

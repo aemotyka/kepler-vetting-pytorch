@@ -51,9 +51,7 @@ FUSED_TRANSIT_SET_PREDICTIONS_PATH = (
 FUSED_LOCAL_TRANSIT_SET_PREDICTIONS_PATH = (
     METRICS_DIR / "fused_local_transit_set_model_predictions.csv"
 )
-RESCUE_STACKED_PREDICTIONS_PATH = (
-    METRICS_DIR / "rescue_stacked_model_predictions.csv"
-)
+RESCUE_STACKED_PREDICTIONS_PATH = METRICS_DIR / "rescue_stacked_model_predictions.csv"
 SELECTIVE_RESCUE_RULE_PREDICTIONS_PATH = (
     METRICS_DIR / "selective_rescue_rule_model_predictions.csv"
 )
@@ -143,10 +141,7 @@ def score_column_name(display_model: str) -> str:
 
 
 BASE_SCORE_COLUMN = score_column_name(BASE_SPEC.display_model)
-EXPERT_SCORE_COLUMNS = [
-    score_column_name(spec.display_model)
-    for spec in EXPERT_SPECS
-]
+EXPERT_SCORE_COLUMNS = [score_column_name(spec.display_model) for spec in EXPERT_SPECS]
 
 
 def require_file(path: Path) -> None:
@@ -216,16 +211,13 @@ def add_gate_features(frame: pd.DataFrame) -> pd.DataFrame:
     frame["expert_max_score"] = expert_scores.max(axis=1)
     frame["expert_min_score"] = expert_scores.min(axis=1)
     frame["expert_mean_score"] = expert_scores.mean(axis=1)
-    frame["expert_score_range"] = (
-        frame["expert_max_score"]
-        - frame["expert_min_score"]
-    )
+    frame["expert_score_range"] = frame["expert_max_score"] - frame["expert_min_score"]
     frame["expert_positive_vote_count"] = (
-        expert_scores >= 0.5
-    ).sum(axis=1).astype(float)
+        (expert_scores >= 0.5).sum(axis=1).astype(float)
+    )
     frame["expert_negative_vote_count"] = (
-        expert_scores < 0.5
-    ).sum(axis=1).astype(float)
+        (expert_scores < 0.5).sum(axis=1).astype(float)
+    )
 
     for column in EXPERT_SCORE_COLUMNS:
         suffix = column.removeprefix("score__")
@@ -234,14 +226,8 @@ def add_gate_features(frame: pd.DataFrame) -> pd.DataFrame:
             frame[f"delta__{suffix}_minus_base"]
         )
 
-    rescue_mask = (
-        (frame["base_pred"] == 0)
-        & (frame["expert_max_score"] >= 0.5)
-    )
-    veto_mask = (
-        (frame["base_pred"] == 1)
-        & (frame["expert_min_score"] < 0.5)
-    )
+    rescue_mask = (frame["base_pred"] == 0) & (frame["expert_max_score"] >= 0.5)
+    veto_mask = (frame["base_pred"] == 1) & (frame["expert_min_score"] < 0.5)
 
     frame["proposal_kind"] = "none"
     frame.loc[rescue_mask, "proposal_kind"] = "rescue"
@@ -264,12 +250,9 @@ def add_gate_features(frame: pd.DataFrame) -> pd.DataFrame:
     frame["proposal_is_rescue"] = rescue_mask.astype(float)
     frame["proposal_is_veto"] = veto_mask.astype(float)
     frame["proposal_abs_delta_from_base"] = np.abs(
-        frame["proposal_score"]
-        - frame[BASE_SCORE_COLUMN]
+        frame["proposal_score"] - frame[BASE_SCORE_COLUMN]
     )
-    frame["proposal_disagrees_with_base"] = (
-        frame["proposal_pred"] != frame["base_pred"]
-    )
+    frame["proposal_disagrees_with_base"] = frame["proposal_pred"] != frame["base_pred"]
 
     frame["gate_target"] = (
         frame["proposal_pred"] == frame["y_true"].astype(int)
@@ -278,26 +261,31 @@ def add_gate_features(frame: pd.DataFrame) -> pd.DataFrame:
     return frame
 
 
-FEATURE_COLUMNS = [
-    BASE_SCORE_COLUMN,
-    "base_margin_abs",
-    "expert_max_score",
-    "expert_min_score",
-    "expert_mean_score",
-    "expert_score_range",
-    "expert_positive_vote_count",
-    "expert_negative_vote_count",
-    "proposal_score",
-    "proposal_is_rescue",
-    "proposal_is_veto",
-    "proposal_abs_delta_from_base",
-] + EXPERT_SCORE_COLUMNS + [
-    f"delta__{column.removeprefix('score__')}_minus_base"
-    for column in EXPERT_SCORE_COLUMNS
-] + [
-    f"abs_delta__{column.removeprefix('score__')}_minus_base"
-    for column in EXPERT_SCORE_COLUMNS
-]
+FEATURE_COLUMNS = (
+    [
+        BASE_SCORE_COLUMN,
+        "base_margin_abs",
+        "expert_max_score",
+        "expert_min_score",
+        "expert_mean_score",
+        "expert_score_range",
+        "expert_positive_vote_count",
+        "expert_negative_vote_count",
+        "proposal_score",
+        "proposal_is_rescue",
+        "proposal_is_veto",
+        "proposal_abs_delta_from_base",
+    ]
+    + EXPERT_SCORE_COLUMNS
+    + [
+        f"delta__{column.removeprefix('score__')}_minus_base"
+        for column in EXPERT_SCORE_COLUMNS
+    ]
+    + [
+        f"abs_delta__{column.removeprefix('score__')}_minus_base"
+        for column in EXPERT_SCORE_COLUMNS
+    ]
+)
 
 
 def fused_accuracy(frame: pd.DataFrame) -> float:
@@ -396,8 +384,7 @@ def fit_gate_for_seed(
         )
 
         full_val = frame[
-            (frame["seed"] == seed)
-            & (frame["split"] == GATE_TRAIN_SPLIT)
+            (frame["seed"] == seed) & (frame["split"] == GATE_TRAIN_SPLIT)
         ].copy()
 
         result = score_candidate_gate(
@@ -486,10 +473,7 @@ def main() -> None:
     print("base_model:", BASE_SPEC.display_model)
     print(
         "expert_models:",
-        [
-            spec.display_model
-            for spec in EXPERT_SPECS
-        ],
+        [spec.display_model for spec in EXPERT_SPECS],
     )
     print("gate_train_split:", GATE_TRAIN_SPLIT)
     print("gate_threshold:", GATE_THRESHOLD)
@@ -559,8 +543,7 @@ def main() -> None:
             )
             record["gate_veto_count"] = int(
                 (
-                    scored["gate_accept_override"]
-                    & (scored["proposal_kind"] == "veto")
+                    scored["gate_accept_override"] & (scored["proposal_kind"] == "veto")
                 ).sum()
             )
             record["selected_c"] = c_value
@@ -582,12 +565,14 @@ def main() -> None:
             predictions["base_score"] = scored[BASE_SCORE_COLUMN].to_numpy()
             predictions["base_pred"] = scored["base_pred"].astype(int).to_numpy()
             predictions["proposal_score"] = scored["proposal_score"].to_numpy()
-            predictions["proposal_pred"] = scored["proposal_pred"].astype(int).to_numpy()
+            predictions["proposal_pred"] = (
+                scored["proposal_pred"].astype(int).to_numpy()
+            )
             predictions["proposal_kind"] = scored["proposal_kind"].to_numpy()
             predictions["gate_probability"] = scored["gate_probability"].to_numpy()
-            predictions["gate_accept_override"] = scored[
-                "gate_accept_override"
-            ].astype(bool).to_numpy()
+            predictions["gate_accept_override"] = (
+                scored["gate_accept_override"].astype(bool).to_numpy()
+            )
             predictions["final_pred"] = scored["final_pred"].astype(int).to_numpy()
             predictions["selected_c"] = c_value
 
@@ -640,10 +625,7 @@ def main() -> None:
                 "model_name": MODEL_NAME,
                 "split_mode": SPLIT_MODE,
                 "base_model": BASE_SPEC.display_model,
-                "expert_models": [
-                    spec.display_model
-                    for spec in EXPERT_SPECS
-                ],
+                "expert_models": [spec.display_model for spec in EXPERT_SPECS],
                 "feature_columns": FEATURE_COLUMNS,
                 "gate_train_split": GATE_TRAIN_SPLIT,
                 "gate_threshold": GATE_THRESHOLD,

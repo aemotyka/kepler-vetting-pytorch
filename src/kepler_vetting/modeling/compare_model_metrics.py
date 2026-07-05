@@ -20,7 +20,9 @@ TABULAR_LOCAL_FEATURES_PREDICTIONS_PATH = (
     METRICS_DIR / "tabular_local_features_predictions.csv"
 )
 LOCAL_LIGHTCURVE_PREDICTIONS_PATH = METRICS_DIR / "lightcurve_cnn_predictions.csv"
-GLOBAL_LIGHTCURVE_PREDICTIONS_PATH = METRICS_DIR / "global_lightcurve_cnn_predictions.csv"
+GLOBAL_LIGHTCURVE_PREDICTIONS_PATH = (
+    METRICS_DIR / "global_lightcurve_cnn_predictions.csv"
+)
 FUSED_LOCAL_PREDICTIONS_PATH = METRICS_DIR / "fused_local_model_predictions.csv"
 SOFT_LABEL_FUSED_LOCAL_PREDICTIONS_PATH = (
     METRICS_DIR / "soft_label_fused_local_model_predictions.csv"
@@ -49,9 +51,7 @@ FUSED_TRANSIT_SET_PREDICTIONS_PATH = (
 FUSED_LOCAL_TRANSIT_SET_PREDICTIONS_PATH = (
     METRICS_DIR / "fused_local_transit_set_model_predictions.csv"
 )
-RESCUE_STACKED_PREDICTIONS_PATH = (
-    METRICS_DIR / "rescue_stacked_model_predictions.csv"
-)
+RESCUE_STACKED_PREDICTIONS_PATH = METRICS_DIR / "rescue_stacked_model_predictions.csv"
 SELECTIVE_RESCUE_RULE_PREDICTIONS_PATH = (
     METRICS_DIR / "selective_rescue_rule_model_predictions.csv"
 )
@@ -301,11 +301,7 @@ def load_current_model_ready_dataset() -> dict[str, np.ndarray]:
         "kepoi_name",
     ]
 
-    missing = [
-        name
-        for name in required_arrays
-        if name not in data.files
-    ]
+    missing = [name for name in required_arrays if name not in data.files]
 
     if missing:
         raise ValueError(
@@ -354,22 +350,16 @@ def load_predictions(
 
     missing = REQUIRED_PREDICTION_COLUMNS - set(frame.columns)
     if missing:
-        raise ValueError(
-            f"{path} is missing required columns: {sorted(missing)}"
-        )
+        raise ValueError(f"{path} is missing required columns: {sorted(missing)}")
 
     frame = frame[frame["model"].isin(models)].copy()
 
     if frame.empty:
-        raise ValueError(
-            f"{path} did not contain any requested models: {models}"
-        )
+        raise ValueError(f"{path} did not contain any requested models: {models}")
 
     missing_models = sorted(set(models) - set(frame["model"].unique()))
     if missing_models:
-        raise ValueError(
-            f"{path} is missing requested models: {missing_models}"
-        )
+        raise ValueError(f"{path} is missing requested models: {missing_models}")
 
     validate_predictions_against_current_dataset(
         frame=frame,
@@ -396,9 +386,7 @@ def validate_predictions_against_current_dataset(
 
     bad_splits = sorted(set(frame["split"].astype(str)) - set(SPLIT_ORDER))
     if bad_splits:
-        raise ValueError(
-            f"{path} contains unknown split names: {bad_splits}"
-        )
+        raise ValueError(f"{path} contains unknown split names: {bad_splits}")
 
     for model in models:
         model_frame = frame[frame["model"] == model]
@@ -622,7 +610,9 @@ def build_by_seed_comparison(predictions: pd.DataFrame) -> pd.DataFrame:
     by_seed = pd.DataFrame(rows)
 
     by_seed["model_order"] = by_seed["display_model"].map(MODEL_ORDER)
-    by_seed["metric_variant_order"] = by_seed["metric_variant"].map(METRIC_VARIANT_ORDER)
+    by_seed["metric_variant_order"] = by_seed["metric_variant"].map(
+        METRIC_VARIANT_ORDER
+    )
     by_seed["split_order"] = by_seed["split"].map(SPLIT_ORDER)
 
     if by_seed["model_order"].isna().any():
@@ -666,8 +656,7 @@ def build_by_seed_comparison(predictions: pd.DataFrame) -> pd.DataFrame:
 
 def summarize_by_seed(by_seed: pd.DataFrame) -> pd.DataFrame:
     summary = (
-        by_seed
-        .groupby(
+        by_seed.groupby(
             [
                 "family",
                 "display_model",
@@ -683,8 +672,7 @@ def summarize_by_seed(by_seed: pd.DataFrame) -> pd.DataFrame:
     )
 
     summary.columns = [
-        "_".join(col).rstrip("_")
-        for col in summary.columns.to_flat_index()
+        "_".join(col).rstrip("_") for col in summary.columns.to_flat_index()
     ]
 
     summary = summary.sort_values(

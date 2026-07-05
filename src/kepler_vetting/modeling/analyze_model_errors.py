@@ -98,9 +98,7 @@ def load_predictions(path: Path, model_name: str) -> pd.DataFrame:
 
     missing = required_columns - set(frame.columns)
     if missing:
-        raise ValueError(
-            f"{path} is missing required columns: {sorted(missing)}"
-        )
+        raise ValueError(f"{path} is missing required columns: {sorted(missing)}")
 
     frame = frame[frame["model"] == model_name].copy()
 
@@ -216,7 +214,9 @@ def build_variant_rows(
     if merged.empty:
         raise ValueError("tabular/fused predictions did not overlap")
 
-    if not (merged["y_true_tabular"].to_numpy() == merged["y_true_fused"].to_numpy()).all():
+    if not (
+        merged["y_true_tabular"].to_numpy() == merged["y_true_fused"].to_numpy()
+    ).all():
         raise ValueError("tabular/fused y_true values differ after merge")
 
     rows = []
@@ -244,15 +244,17 @@ def build_variant_rows(
 
             current["y_true"] = current["y_true_tabular"].astype(int)
 
-            current["tabular_score"] = current["planet_like_score_tabular"].astype(float)
+            current["tabular_score"] = current["planet_like_score_tabular"].astype(
+                float
+            )
             current["fused_score"] = current["planet_like_score_fused"].astype(float)
 
             current["tabular_pred"] = (
                 current["tabular_score"] >= tabular_threshold
             ).astype(int)
-            current["fused_pred"] = (
-                current["fused_score"] >= fused_threshold
-            ).astype(int)
+            current["fused_pred"] = (current["fused_score"] >= fused_threshold).astype(
+                int
+            )
 
             current["tabular_correct"] = current["tabular_pred"] == current["y_true"]
             current["fused_correct"] = current["fused_pred"] == current["y_true"]
@@ -318,11 +320,11 @@ def build_variant_rows(
     return combined
 
 
-def attach_manifest(comparison_rows: pd.DataFrame, manifest: pd.DataFrame) -> pd.DataFrame:
+def attach_manifest(
+    comparison_rows: pd.DataFrame, manifest: pd.DataFrame
+) -> pd.DataFrame:
     extra_columns = [
-        column
-        for column in manifest.columns
-        if column not in comparison_rows.columns
+        column for column in manifest.columns if column not in comparison_rows.columns
     ]
 
     manifest_subset = manifest[
@@ -373,7 +375,8 @@ def summarize_errors(comparison_rows: pd.DataFrame) -> pd.DataFrame:
                 "tabular_only_correct": tabular_only_correct,
                 "net_fused_correct_gain": fused_only_correct - tabular_only_correct,
                 "changed_prediction_count": changed_prediction_count,
-                "changed_prediction_rate": changed_prediction_count / max(group.shape[0], 1),
+                "changed_prediction_rate": changed_prediction_count
+                / max(group.shape[0], 1),
             }
         )
 

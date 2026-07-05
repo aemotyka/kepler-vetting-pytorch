@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copy
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -26,12 +25,13 @@ from kepler_vetting.modeling.lightcurve_common import (
     get_device,
     make_predictions_frame,
     normalize_from_train,
-    predict_model,
     set_seed,
     sigmoid_np,
     summarize_metrics,
 )
-from kepler_vetting.modeling.train_tabular_baseline import load_unstandardized_tabular_features
+from kepler_vetting.modeling.train_tabular_baseline import (
+    load_unstandardized_tabular_features,
+)
 from kepler_vetting.modeling.splits import split_indices
 from kepler_vetting.processing.common import (
     MODEL_READY_NPZ_PATH,

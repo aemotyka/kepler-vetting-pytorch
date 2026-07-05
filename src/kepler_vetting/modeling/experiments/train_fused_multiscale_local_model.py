@@ -60,7 +60,9 @@ MODEL_DIR = RUN_MODEL_DIR
 PER_SEED_METRICS_PATH = METRICS_DIR / "fused_multiscale_local_model_metrics_by_seed.csv"
 SUMMARY_METRICS_PATH = METRICS_DIR / "fused_multiscale_local_model_metrics_summary.csv"
 PREDICTIONS_PATH = METRICS_DIR / "fused_multiscale_local_model_predictions.csv"
-TRAINING_HISTORY_PATH = METRICS_DIR / "fused_multiscale_local_model_training_history.csv"
+TRAINING_HISTORY_PATH = (
+    METRICS_DIR / "fused_multiscale_local_model_training_history.csv"
+)
 MODEL_PATH = MODEL_DIR / "fused_tabular_multiscale_local_cnn.pt"
 
 
@@ -273,11 +275,7 @@ def main() -> None:
 
     data = np.load(MODEL_READY_NPZ_PATH)
 
-    missing_views = [
-        key
-        for key in LOCAL_VIEW_KEYS
-        if key not in data.files
-    ]
+    missing_views = [key for key in LOCAL_VIEW_KEYS if key not in data.files]
 
     if missing_views:
         raise ValueError(
@@ -287,10 +285,7 @@ def main() -> None:
         )
 
     x_tabular_unscaled = load_unstandardized_tabular_features(data)
-    x_local_raw_by_key = {
-        key: data[key].astype(np.float32)
-        for key in LOCAL_VIEW_KEYS
-    }
+    x_local_raw_by_key = {key: data[key].astype(np.float32) for key in LOCAL_VIEW_KEYS}
     y = data["labels"].astype(np.int64)
 
     kepid = data["kepid"]
@@ -308,8 +303,7 @@ def main() -> None:
             )
 
     local_input_lengths = {
-        key: values.shape[1]
-        for key, values in x_local_raw_by_key.items()
+        key: values.shape[1] for key, values in x_local_raw_by_key.items()
     }
 
     if len(set(local_input_lengths.values())) != 1:

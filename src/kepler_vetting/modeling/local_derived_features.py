@@ -175,9 +175,7 @@ def build_quality_feature_matrix(
     manifest: pd.DataFrame,
 ) -> tuple[np.ndarray, np.ndarray]:
     missing = [
-        feature
-        for feature in QUALITY_FEATURE_NAMES
-        if feature not in manifest.columns
+        feature for feature in QUALITY_FEATURE_NAMES if feature not in manifest.columns
     ]
 
     if missing:

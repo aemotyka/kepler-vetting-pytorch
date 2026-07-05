@@ -52,7 +52,9 @@ def main() -> None:
         raise FileNotFoundError(f"missing processed dataset: {PROCESSED_NPZ_PATH}")
 
     if not PROCESSED_MANIFEST_PATH.exists():
-        raise FileNotFoundError(f"missing processed manifest: {PROCESSED_MANIFEST_PATH}")
+        raise FileNotFoundError(
+            f"missing processed manifest: {PROCESSED_MANIFEST_PATH}"
+        )
 
     if not PROCESSED_SUCCESSFUL_MANIFEST_PATH.exists():
         raise FileNotFoundError(
@@ -82,7 +84,7 @@ def main() -> None:
 
     if data["local_phase"].shape != (n, LOCAL_BINS):
         raise ValueError(f"local_phase has bad shape: {data['local_phase'].shape}")
-    
+
     if data["local_view_narrow"].shape != (n, LOCAL_BINS):
         raise ValueError(
             f"local_view_narrow has bad shape: {data['local_view_narrow'].shape}"
@@ -137,7 +139,9 @@ def main() -> None:
     assert_finite("local_view_wide", data["local_view_wide"])
     assert_finite("local_phase_narrow", data["local_phase_narrow"])
     assert_finite("local_phase_wide", data["local_phase_wide"])
-    assert_finite("local_window_half_width_narrow", data["local_window_half_width_narrow"])
+    assert_finite(
+        "local_window_half_width_narrow", data["local_window_half_width_narrow"]
+    )
     assert_finite("local_window_half_width_wide", data["local_window_half_width_wide"])
     assert_finite("transit_view", data["transit_view"])
     assert_finite("transit_count", data["transit_count"])
@@ -148,8 +152,8 @@ def main() -> None:
     assert_finite("feature_stds", data["feature_stds"])
 
     if "processed_ok" in manifest.columns:
-        successful_mask = manifest["processed_ok"].astype(str).str.lower().isin(
-            ["true", "1", "yes"]
+        successful_mask = (
+            manifest["processed_ok"].astype(str).str.lower().isin(["true", "1", "yes"])
         )
 
         if not successful_mask.all():

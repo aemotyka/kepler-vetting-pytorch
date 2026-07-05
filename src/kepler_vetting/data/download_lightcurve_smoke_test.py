@@ -38,9 +38,7 @@ def list_long_cadence_fits(directory_url: str) -> list[str]:
     html = read_url_text(directory_url)
     hrefs = re.findall(r'href=["\']([^"\']+)["\']', html)
     return sorted(
-        urljoin(directory_url, href)
-        for href in hrefs
-        if href.endswith("_llc.fits")
+        urljoin(directory_url, href) for href in hrefs if href.endswith("_llc.fits")
     )
 
 
@@ -68,7 +66,9 @@ for _, row in sample.iterrows():
         break
 
 if chosen is None:
-    raise RuntimeError("Could not find a downloadable long-cadence FITS file in the first 200 KOI rows.")
+    raise RuntimeError(
+        "Could not find a downloadable long-cadence FITS file in the first 200 KOI rows."
+    )
 
 row, directory_url, files = chosen
 

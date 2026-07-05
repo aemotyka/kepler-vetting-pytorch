@@ -30,6 +30,7 @@ def row_float(row: pd.Series, column: str) -> float:
     value = pd.to_numeric(row.get(column), errors="coerce")
     return float(value) if np.isfinite(value) else float("nan")
 
+
 AUX_LOCAL_VIEW_SCALES = {
     "narrow": 0.5,
     "wide": 2.0,
@@ -78,7 +79,10 @@ def median_bin_or_empty(
     except ValueError as exc:
         message = str(exc)
 
-        if "no points in bin range" not in message and "all bins are empty" not in message:
+        if (
+            "no points in bin range" not in message
+            and "all bins are empty" not in message
+        ):
             raise
 
         return empty_phase_bin(
@@ -208,6 +212,7 @@ def build_transit_windows(
         "transit_missing_bin_fraction_max": float(np.max(missing_values)),
     }
 
+
 def process_row(row: pd.Series) -> tuple[dict[str, Any], dict[str, Any] | None]:
     kepid = int(row["kepid"])
     kepoi_name = str(row["kepoi_name"])
@@ -299,9 +304,13 @@ def process_row(row: pd.Series) -> tuple[dict[str, Any], dict[str, Any] | None]:
 
             aux_local_payload[f"local_phase_{scale_name}"] = scaled_phase
             aux_local_payload[f"local_view_{scale_name}"] = scaled_view
-            aux_local_payload[f"local_window_half_width_{scale_name}"] = scaled_half_width
+            aux_local_payload[f"local_window_half_width_{scale_name}"] = (
+                scaled_half_width
+            )
 
-            aux_local_record[f"local_window_half_width_{scale_name}"] = scaled_half_width
+            aux_local_record[f"local_window_half_width_{scale_name}"] = (
+                scaled_half_width
+            )
             aux_local_record[
                 f"local_missing_bin_fraction_before_interp_{scale_name}"
             ] = scaled_missing_fraction
@@ -348,8 +357,7 @@ def process_row(row: pd.Series) -> tuple[dict[str, Any], dict[str, Any] | None]:
         )
 
         feature_values = {
-            feature: row_float(row, feature)
-            for feature in TABULAR_FEATURES
+            feature: row_float(row, feature) for feature in TABULAR_FEATURES
         }
 
         processed = {
@@ -405,13 +413,14 @@ def main() -> None:
             processed_payloads.append(payload)
 
     processed_manifest = pd.DataFrame(processed_records)
-    successful_processed_manifest = (
-        processed_manifest[processed_manifest["processed_ok"]]
-        .reset_index(drop=True)
-    )
+    successful_processed_manifest = processed_manifest[
+        processed_manifest["processed_ok"]
+    ].reset_index(drop=True)
 
     processed_manifest.to_csv(PROCESSED_MANIFEST_PATH, index=False)
-    successful_processed_manifest.to_csv(PROCESSED_SUCCESSFUL_MANIFEST_PATH, index=False)
+    successful_processed_manifest.to_csv(
+        PROCESSED_SUCCESSFUL_MANIFEST_PATH, index=False
+    )
 
     if not processed_payloads:
         raise RuntimeError("no KOIs processed successfully")

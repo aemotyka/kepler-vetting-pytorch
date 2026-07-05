@@ -70,16 +70,13 @@ class PhaseViewCNN(nn.Module):
             nn.BatchNorm1d(16),
             nn.ReLU(),
             nn.MaxPool1d(kernel_size=2),
-
             nn.Conv1d(16, 32, kernel_size=5, padding=2),
             nn.BatchNorm1d(32),
             nn.ReLU(),
             nn.MaxPool1d(kernel_size=2),
-
             nn.Conv1d(32, 64, kernel_size=5, padding=2),
             nn.BatchNorm1d(64),
             nn.ReLU(),
-
             nn.AdaptiveAvgPool1d(1),
         )
 
@@ -325,15 +322,13 @@ def summarize_metrics(metrics: pd.DataFrame) -> pd.DataFrame:
     ]
 
     summary = (
-        metrics
-        .groupby(["model", "split"])[metric_columns]
+        metrics.groupby(["model", "split"])[metric_columns]
         .agg(["mean", "std", "min", "max"])
         .reset_index()
     )
 
     summary.columns = [
-        "_".join(col).rstrip("_")
-        for col in summary.columns.to_flat_index()
+        "_".join(col).rstrip("_") for col in summary.columns.to_flat_index()
     ]
 
     return summary

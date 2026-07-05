@@ -106,7 +106,7 @@ def validate_no_group_overlap(
     split_names = sorted(group_sets)
 
     for idx, left_name in enumerate(split_names):
-        for right_name in split_names[idx + 1:]:
+        for right_name in split_names[idx + 1 :]:
             overlap = group_sets[left_name] & group_sets[right_name]
 
             if overlap:
