@@ -33,6 +33,9 @@ TABULAR_LOCAL_FEATURES_PREDICTIONS_PATH = (
 LOCAL_CNN_PREDICTIONS_PATH = METRICS_DIR / "lightcurve_cnn_predictions.csv"
 GLOBAL_CNN_PREDICTIONS_PATH = METRICS_DIR / "global_lightcurve_cnn_predictions.csv"
 FUSED_PREDICTIONS_PATH = METRICS_DIR / "fused_local_model_predictions.csv"
+SOFT_LABEL_FUSED_LOCAL_PREDICTIONS_PATH = (
+    METRICS_DIR / "soft_label_fused_local_model_predictions.csv"
+)
 FUSED_LOCAL_FEATURES_PREDICTIONS_PATH = (
     METRICS_DIR / "fused_local_features_model_predictions.csv"
 )
@@ -228,6 +231,11 @@ MODEL_SPECS = {
         model_name="fused_tabular_local_cnn",
         predictions_path=FUSED_PREDICTIONS_PATH,
     ),
+    "soft_label_fused_tabular_local_cnn": ModelSpec(
+        display_model="soft_label_fused_tabular_local_cnn",
+        model_name="soft_label_fused_tabular_local_cnn",
+        predictions_path=SOFT_LABEL_FUSED_LOCAL_PREDICTIONS_PATH,
+    ),
     "fused_tabular_local_features_cnn": ModelSpec(
         display_model="fused_tabular_local_features_cnn",
         model_name="fused_tabular_local_features_cnn",
@@ -280,6 +288,16 @@ PAIR_SPECS = [
         pair_id="tabular_local_features_vs_fused",
         left=MODEL_SPECS["tabular_local_features_logistic_regression"],
         right=MODEL_SPECS["fused_tabular_local_cnn"],
+    ),
+    PairSpec(
+        pair_id="fused_vs_soft_label_fused_local",
+        left=MODEL_SPECS["fused_tabular_local_cnn"],
+        right=MODEL_SPECS["soft_label_fused_tabular_local_cnn"],
+    ),
+    PairSpec(
+        pair_id="fused_local_transit_set_vs_soft_label_fused_local",
+        left=MODEL_SPECS["fused_tabular_local_transit_set_cnn"],
+        right=MODEL_SPECS["soft_label_fused_tabular_local_cnn"],
     ),
     PairSpec(
         pair_id="tabular_vs_fused_local_features",
@@ -1290,7 +1308,7 @@ def main() -> None:
         columns=SUMMARY_COLUMNS,
     )
 
-    strict_pair = "fused_vs_selective_rescue_rule"
+    strict_pair = "fused_vs_soft_label_fused_local"
 
     strict_changed = changed[
         (changed["pair_id"] == strict_pair)

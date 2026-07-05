@@ -22,6 +22,9 @@ TABULAR_LOCAL_FEATURES_PREDICTIONS_PATH = (
 LOCAL_LIGHTCURVE_PREDICTIONS_PATH = METRICS_DIR / "lightcurve_cnn_predictions.csv"
 GLOBAL_LIGHTCURVE_PREDICTIONS_PATH = METRICS_DIR / "global_lightcurve_cnn_predictions.csv"
 FUSED_LOCAL_PREDICTIONS_PATH = METRICS_DIR / "fused_local_model_predictions.csv"
+SOFT_LABEL_FUSED_LOCAL_PREDICTIONS_PATH = (
+    METRICS_DIR / "soft_label_fused_local_model_predictions.csv"
+)
 FUSED_LOCAL_FEATURES_PREDICTIONS_PATH = (
     METRICS_DIR / "fused_local_features_model_predictions.csv"
 )
@@ -84,6 +87,13 @@ PREDICTION_SOURCES = [
         "path": FUSED_LOCAL_PREDICTIONS_PATH,
         "models": [
             "fused_tabular_local_cnn",
+        ],
+    },
+    {
+        "family": "soft_label_fused_local",
+        "path": SOFT_LABEL_FUSED_LOCAL_PREDICTIONS_PATH,
+        "models": [
+            "soft_label_fused_tabular_local_cnn",
         ],
     },
     {
@@ -154,6 +164,7 @@ DISPLAY_NAMES = {
     "local_view_cnn": "local_view_cnn",
     "global_view_cnn": "global_view_cnn",
     "fused_tabular_local_cnn": "fused_tabular_local_cnn",
+    "soft_label_fused_tabular_local_cnn": "soft_label_fused_tabular_local_cnn",
     "fused_tabular_local_features_cnn": "fused_tabular_local_features_cnn",
     "fused_tabular_residual_local_cnn": "fused_tabular_residual_local_cnn",
     "stacked_score_logistic_regression": "stacked_score_logistic_regression",
@@ -171,14 +182,15 @@ MODEL_ORDER = {
     "local_view_cnn": 3,
     "global_view_cnn": 4,
     "fused_tabular_local_cnn": 5,
-    "fused_tabular_local_features_cnn": 6,
-    "fused_tabular_residual_local_cnn": 7,
-    "fused_tabular_multiscale_local_cnn": 8,
-    "fused_tabular_transit_set_cnn": 9,
-    "fused_tabular_local_transit_set_cnn": 10,
-    "stacked_score_logistic_regression": 11,
-    "rescue_stacked_logistic_regression": 12,
-    "selective_rescue_rule_model": 13,
+    "soft_label_fused_tabular_local_cnn": 6,
+    "fused_tabular_local_features_cnn": 7,
+    "fused_tabular_residual_local_cnn": 8,
+    "fused_tabular_multiscale_local_cnn": 9,
+    "fused_tabular_transit_set_cnn": 10,
+    "fused_tabular_local_transit_set_cnn": 11,
+    "stacked_score_logistic_regression": 12,
+    "rescue_stacked_logistic_regression": 13,
+    "selective_rescue_rule_model": 14,
 }
 
 METRIC_VARIANT_ORDER = {
