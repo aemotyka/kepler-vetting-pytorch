@@ -4,9 +4,9 @@
 
 The project classifies Kepler Objects of Interest as either planet-like signals or false positives. Labels and tabular candidate metadata come from the NASA Exoplanet Archive Q1-Q17 DR25 KOI table. Time-series inputs come from public MAST Kepler long-cadence FITS light curves.
 
-## Final result
+## Result
 
-The final selected model is:
+Final model:
 
     fused_tabular_local_cnn
 
@@ -21,13 +21,13 @@ Final test metrics:
 |---|---:|---:|---:|---:|---:|
 | `fused_tabular_local_cnn` | 0.868 | 0.872 | 0.936 | 0.859 | 0.885 |
 
-The fused tabular + local phase-view CNN is the final model because it produced the best practical balance of accuracy, F1, ROC AUC, precision, and recall. Later soft-label, candidate-weighted, three-class, rescue, and learned-gate experiments were useful diagnostics, but none beat the fixed-threshold fused model cleanly.
+This is the model I would use. It had the best overall mix of accuracy, F1, ROC AUC, precision, and recall. I also tried soft labels, candidate weighting, a three-class target, rescue rules, and a learned gate. Those runs were useful for understanding the mistakes, but none of them clearly beat the fused model at the fixed threshold.
 
 See:
 
-- `docs/results.md` for the full final result write-up.
-- `notebooks/final_report.ipynb` for the report-only notebook that reads existing CSV outputs.
-- `docs/data_setup.md` for data download and setup notes.
+- `docs/results.md` for the full results write-up.
+- `notebooks/final_report.ipynb` for the notebook that rebuilds the final tables from saved CSVs.
+- `docs/data_setup.md` for the data download/setup notes.
 
 ## Data
 
@@ -53,9 +53,9 @@ Current data path:
     -> cleaned and phase-folded tensors
     -> PyTorch models
 
-## Final reproduction path
+## Reproducing the final run
 
-The commands below reproduce the final selected model path and comparison outputs.
+These are the commands for the final path only.
 
 ### 1. Train the final model
 
@@ -89,7 +89,7 @@ The commands below reproduce the final selected model path and comparison output
 
     notebooks/final_report.ipynb
 
-The notebook is report-only. It reads existing CSV outputs from `outputs/metrics/split801010/` and does not train models.
+The notebook just reads the saved CSVs in `outputs/metrics/split801010/`. It does not train anything.
 
 ## Key output files
 
@@ -104,20 +104,20 @@ The notebook is report-only. It reads existing CSV outputs from `outputs/metrics
 
 ## Archived experiments
 
-Failed or secondary trainer scripts are archived under:
+Old experiment trainers live here:
 
     src/kepler_vetting/modeling/experiments/
 
-Those modules are kept for reproducibility and experiment history, but they are not part of the final recommended training path.
+They are kept so the experiment history is still there, but they are not part of the final path.
 
-Archived branches include soft-label targets, candidate weighting, three-class modeling, rescue stackers, selective rescue rules, and learned rescue/veto gates.
+That folder includes the soft-label, candidate-weighted, three-class, rescue, and learned-gate runs.
 
 ## Project status
 
-Closeout state:
+Current state:
 
 - Final model selected.
 - Final results documented in `docs/results.md`.
 - Final report notebook added.
 - Failed and secondary experiment trainers archived.
-- README now points to the final path only.
+- README points to the final path only.

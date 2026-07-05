@@ -1,16 +1,15 @@
 # Archived modeling experiments
 
-This package contains trainer scripts for secondary, failed, or diagnostic
-modeling branches from the Kepler vetting project.
+This folder holds the trainer scripts from the modeling branches that did
+not become the final path.
 
-The final selected model is `fused_tabular_local_cnn` with the 80/10/10
-grouped split and fixed 0.5 threshold.
+Final model: `fused_tabular_local_cnn` with the 80/10/10 grouped split
+and fixed 0.5 threshold.
 
-These archived modules are intentionally kept instead of deleted so the
-experiment history remains reproducible, while the top-level modeling
-package stays focused on the final pipeline and core baselines.
+These files are kept for reference, but the top-level modeling package now
+stays focused on the final path and the core baselines.
 
-Archived branches include:
+Archived runs:
 
 - soft-label fused local
 - candidate-weighted fused local
@@ -18,5 +17,4 @@ Archived branches include:
 - rescue stacker
 - selective rescue rule
 - two-stage rescue/veto gate
-- older fused local-feature/residual/multiscale/stacked-score variants,
-  when present
+- older fused local-feature/residual/multiscale/stacked-score variants

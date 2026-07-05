@@ -1,22 +1,22 @@
 # Results
 
-This document records the final modeling results for the Kepler vetting project.
+Final notes from the Kepler vetting modeling pass.
 
-The final selected model is `fused_tabular_local_cnn` evaluated with the 80/10/10 grouped split and a fixed 0.5 threshold.
+Final pick: `fused_tabular_local_cnn`, using the 80/10/10 grouped split and a fixed 0.5 threshold.
 
-## Final verdict
+## Bottom line
 
-The project winner is the fused tabular + local phase-view CNN.
+The winner is the fused tabular + local phase-view CNN.
 
 | Model | Threshold | Accuracy | F1 | ROC AUC | Precision | Recall |
 |---|---:|---:|---:|---:|---:|---:|
 | `fused_tabular_local_cnn` | 0.5 | 0.868 | 0.872 | 0.936 | 0.859 | 0.885 |
 
-This model is the best practical result because it has the strongest overall balance of accuracy, F1, AUC, precision, and recall. Several later variants improved one axis, especially recall or threshold-tuned F1, but none beat this model cleanly at the fixed threshold.
+This is the model I would report. It has the best overall mix of accuracy, F1, AUC, precision, and recall. A few later runs improved one number, usually recall or threshold-tuned F1, but none of them clearly beat this model at the fixed threshold.
 
 ## Dataset and split
 
-Source dataset:
+Dataset:
 
     data/processed/kepler_q1_q17_dr25_model_ready.npz
 
@@ -38,13 +38,13 @@ Binary label mapping:
 | `CANDIDATE` | 1 |
 | `CONFIRMED` | 1 |
 
-Final split mode:
+Split:
 
     grouped_by_kepid_test0.10_val0.10
 
-The split is grouped by `kepid`, with approximately 80% train, 10% validation, and 10% test.
+The split is grouped by `kepid`: about 80% train, 10% validation, and 10% test.
 
-Example split summary from the final run:
+Split summary from the final run:
 
 | Split | Rows | Groups | Negative | Positive | Positive rate |
 |---|---:|---:|---:|---:|---:|
@@ -54,7 +54,7 @@ Example split summary from the final run:
 
 ## Main fixed-threshold comparison
 
-All rows below use the same 80/10/10 grouped split setup and fixed threshold 0.5.
+All rows below use the same 80/10/10 grouped split and fixed threshold 0.5.
 
 | Model | Accuracy | F1 | ROC AUC | Precision | Recall | Verdict |
 |---|---:|---:|---:|---:|---:|---|
@@ -75,7 +75,7 @@ All rows below use the same 80/10/10 grouped split setup and fixed threshold 0.5
 
 ## Threshold-tuned observations
 
-Threshold tuning produced a few useful secondary rows, but they are not the selected final model because they depend on validation-threshold tuning and did not cleanly beat the fixed-threshold fused model.
+Threshold tuning produced a few rows worth keeping in the report, but I would not treat them as the final model. They depend on the validation-picked threshold and do not clearly beat the fixed-threshold fused model.
 
 | Model | Tuned threshold | Accuracy | F1 | ROC AUC | Precision | Recall | Note |
 |---|---:|---:|---:|---:|---:|---:|---|
@@ -84,13 +84,13 @@ Threshold tuning produced a few useful secondary rows, but they are not the sele
 | `rescue_stacked_logistic_regression` | 0.437 | 0.868 | 0.872 | 0.928 | 0.852 | 0.895 | F1 tied-ish, AUC much lower |
 | `two_stage_rescue_gate` | 0.494 | 0.867 | 0.870 | 0.935 | 0.857 | 0.884 | Did not beat final fused model |
 
-The threshold-tuned soft-label model is worth reporting as an interesting secondary result, but not as the main model. It improves F1 by lowering the threshold and taking on more recall. The fixed-threshold fused model remains the cleaner final selection.
+The threshold-tuned soft-label model is worth mentioning. It gets better F1 by lowering the threshold and taking on more recall. I would still use the fixed-threshold fused model as the main result.
 
 ## Pairwise test-set error comparison
 
-Pairwise comparisons are useful because many models have similar headline metrics. The key question is whether a proposed model actually corrects more test examples than it breaks relative to the final fused model.
+The headline metrics are close, so the pairwise tables matter. The question is simple: does the new model fix more test examples than it breaks compared with the fused model?
 
-Positive net gain means the right-hand model fixes more rows than it breaks. Negative net gain means it is worse than the final fused model.
+Positive net gain means the right-hand model fixed more rows than it broke. Negative means it lost ground against the fused model.
 
 | Pair | Variant | Left accuracy | Right accuracy | Net right-correct gain | Verdict |
 |---|---|---:|---:|---:|---|
@@ -105,33 +105,33 @@ Positive net gain means the right-hand model fixes more rows than it breaks. Neg
 | `fused_vs_rescue_stacked` | fixed 0.5 | 0.868 | 0.865 | -17 | Worse than fused |
 | `fused_vs_selective_rescue_rule` | fixed 0.5 | 0.868 | 0.866 | -12 | Worse than fused |
 
-This confirms the final call: the extra modeling branches are informative, but they do not replace the fused tabular + local CNN.
+This backs up the final call: the extra modeling branches were useful, but they do not replace the fused tabular + local CNN.
 
 ## Experiment notes
 
 ### Tabular baselines
 
-The tabular models are strong and establish that the KOI table carries substantial signal.
+The tabular models are strong. The KOI table carries a lot of signal on its own.
 
 `tabular_logistic_regression` achieved accuracy 0.837, F1 0.849, and ROC AUC 0.886.
 
-Adding local light-curve summary features improved the tabular baseline. `tabular_local_features_logistic_regression` achieved accuracy 0.843, F1 0.854, and ROC AUC 0.908.
+Adding local light-curve summary features helped the tabular baseline. `tabular_local_features_logistic_regression` achieved accuracy 0.843, F1 0.854, and ROC AUC 0.908.
 
 ### CNN-only models
 
-The CNN-only models underperformed the tabular models.
+The CNN-only models were weaker than the tabular models.
 
 The local-view CNN alone reached accuracy 0.684, F1 0.736, and ROC AUC 0.748.
 
 The global-view CNN alone reached accuracy 0.670, F1 0.742, and ROC AUC 0.719.
 
-These models captured some signal, especially recall, but were not competitive on their own.
+They picked up some signal, especially on recall, but they were not competitive by themselves.
 
 ### Fused tabular + local model
 
-The fused tabular + local CNN is the best overall model.
+The fused tabular + local CNN is the best model in this run.
 
-It combines the structured KOI table with the local phase-folded light-curve view and outperforms the tabular-only and CNN-only models.
+It combines the KOI table with the local phase-folded light-curve view, and it beats both the tabular-only and CNN-only models.
 
 Final fixed-threshold result:
 
@@ -143,18 +143,18 @@ Final fixed-threshold result:
 | Precision | 0.859 |
 | Recall | 0.885 |
 
-This is the selected final model.
+This is the final model.
 
 ### Transit-set and local+transit variants
 
-The transit-set variants did not produce a clean improvement.
+The transit-set variants did not really improve things.
 
 | Model | Accuracy | F1 | ROC AUC |
 |---|---:|---:|---:|
 | `fused_tabular_transit_set_cnn` | 0.865 | 0.867 | 0.935 |
 | `fused_tabular_local_transit_set_cnn` | 0.868 | 0.870 | 0.935 |
 
-The local+transit model tied the final fused model on fixed-threshold accuracy, but had lower F1 and AUC. Pairwise comparison against the final fused model had net gain 0, so this was not a replacement.
+The local+transit model tied the fused model on fixed-threshold accuracy, but had lower F1 and AUC. Pairwise net gain was 0, so there was no reason to switch.
 
 ### Soft-label candidate experiment
 
@@ -176,7 +176,7 @@ Fixed-threshold result:
 | Precision | 0.875 |
 | Recall | 0.863 |
 
-This made the model more conservative. Precision improved, but recall fell. It did not beat the final fused model.
+This made the model more conservative. Precision went up, recall went down, and it did not beat the fused model.
 
 The val-tuned result had the best F1 row:
 
@@ -189,7 +189,7 @@ The val-tuned result had the best F1 row:
 | Precision | 0.851 |
 | Recall | 0.899 |
 
-This is useful as a secondary observation, but the improvement is threshold-sensitive rather than a robust fixed-threshold win.
+This is useful to note, but the improvement depends on the tuned threshold. It is not a fixed-threshold win.
 
 ### Candidate-weighted hard-label experiment
 
@@ -235,7 +235,7 @@ Fixed-threshold result:
 | Precision | 0.825 |
 | Recall | 0.926 |
 
-This model successfully rescued many positive examples, especially candidates, but created too many false positives. It is a useful diagnostic result but not a better final model.
+This model rescued a lot of positives, especially candidates, but it also created too many false positives. Good experiment, not the final model.
 
 Pairwise against the final fused model:
 
@@ -245,7 +245,7 @@ Pairwise against the final fused model:
 
 ### Rescue stacker and selective rescue rule
 
-The rescue/meta-model path did not improve the result.
+The rescue/meta-model path did not help.
 
 | Model | Accuracy | F1 | ROC AUC |
 |---|---:|---:|---:|
@@ -256,7 +256,7 @@ Both are worse than the final fused model.
 
 ### Two-stage learned rescue/veto gate
 
-The final rescue experiment trained a small logistic gate on validation disagreements. It used the fused model as the base model and allowed selected rescue or veto overrides from the other trained variants.
+The last rescue experiment trained a small logistic gate on validation disagreements. The fused model stayed as the base model, and the gate could rescue or veto using the other model scores.
 
 Fixed-threshold result:
 
@@ -274,7 +274,7 @@ Pairwise against the final fused model:
 |---|---:|---:|---:|
 | `fused_vs_two_stage_rescue_gate` | 0.868 | 0.866 | -12 |
 
-The gate performed well on validation but did not transfer reliably to test. Per-seed test gains were mixed:
+The gate looked better on validation than it did on test. Per-seed test gains were mixed:
 
 | Seed | Test net gain vs fused |
 |---:|---:|
@@ -289,25 +289,25 @@ The gate performed well on validation but did not transfer reliably to test. Per
 | 8 | -12 |
 | 9 | -1 |
 
-The learned gate is therefore not part of the final model.
+So the learned gate is not part of the final model.
 
-## Final interpretation
+## Takeaway
 
-The main lesson is that the tabular KOI features are strong, local light-curve shape adds useful complementary signal, and the cleanest win comes from fusing those two inputs directly.
+The KOI table is strong, and the local light-curve shape adds useful extra signal. The best result comes from fusing those two inputs directly.
 
-Later variants showed meaningful structure in the errors:
+The later variants still told us something about the errors:
 
-- Soft labels and candidate weighting changed the precision/recall tradeoff but did not improve the fixed-threshold model.
-- The three-class model rescued many candidates and confirmed planets but overpredicted positives.
-- Rescue and gate models could find some real corrections, but did not generalize cleanly enough to beat fused fixed.
+- Soft labels and candidate weighting moved the precision/recall tradeoff around, but did not improve the fixed-threshold model.
+- The three-class model rescued many candidates and confirmed planets, but overpredicted positives.
+- Rescue and gate models found some real fixes, but they did not generalize well enough to beat the fused model.
 
-The final production/research recommendation is:
+Final recommendation:
 
-    Use fused_tabular_local_cnn with the 80/10/10 grouped split evaluation and fixed 0.5 threshold as the final reported model.
+    Use fused_tabular_local_cnn with the 80/10/10 grouped split and fixed 0.5 threshold.
 
-## Reproduction commands
+## Commands
 
-Train the final model under the selected split:
+Train the final model:
 
     caffeinate -dimsu env \
       KEPLER_VETTING_TEST_SIZE=0.10 \
