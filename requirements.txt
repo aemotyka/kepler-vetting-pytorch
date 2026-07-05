@@ -1,6 +1,7 @@
+astropy
+matplotlib
+numpy
+pandas
+scikit-learn
 torch
-torchaudio
-requests
-python-dotenv
-pyyaml
 tqdm

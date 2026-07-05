@@ -1,22 +1,37 @@
-# python
-.venv/
+# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+.ipynb_checkpoints/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# env
+# Virtual environments
+.venv/
+venv/
+env/
 .env
 
-# data artifacts (keep the folder structure, ignore contents)
+# Local data
 data/raw/
 data/interim/
 data/processed/
-data/cache/
-data/splits/
-data/manifests/*.jsonl
+data/metadata/*.csv
+data/metadata/*.json
 
-# optional local outputs
+# Large/generated astronomy files
+*.fits
+*.fits.gz
+
+# Model artifacts
+artifacts/
+checkpoints/
+models/
+outputs/
 runs/
-logs/
+wandb/
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
