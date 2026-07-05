@@ -1,18 +1,17 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from kepler_vetting.modeling.lightcurve_common import (
     LightcurveTrainingPaths,
     run_phase_view_cnn_baseline,
 )
 
+from kepler_vetting.processing.common import RUN_METRICS_DIR, RUN_MODEL_DIR
 
 VIEW_NAME = "global_view"
 MODEL_NAME = "global_view_cnn"
 
-METRICS_DIR = Path("outputs/metrics")
-MODEL_DIR = Path("artifacts/models")
+METRICS_DIR = RUN_METRICS_DIR
+MODEL_DIR = RUN_MODEL_DIR
 
 PATHS = LightcurveTrainingPaths(
     per_seed_metrics_path=METRICS_DIR / "global_lightcurve_cnn_metrics_by_seed.csv",

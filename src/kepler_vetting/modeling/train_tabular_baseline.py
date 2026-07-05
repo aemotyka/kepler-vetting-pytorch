@@ -19,14 +19,17 @@ from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
 from kepler_vetting.modeling.splits import SPLIT_MODE, describe_split, split_indices
 
-from kepler_vetting.processing.common import MODEL_READY_NPZ_PATH
-
+from kepler_vetting.processing.common import (
+    MODEL_READY_NPZ_PATH,
+    RUN_METRICS_DIR,
+    RUN_MODEL_DIR,
+)
 
 EVAL_SEEDS = tuple(range(10))
 FINAL_MODEL_SEED = 0
 
-METRICS_DIR = Path("outputs/metrics")
-MODEL_DIR = Path("artifacts/models")
+METRICS_DIR = RUN_METRICS_DIR
+MODEL_DIR = RUN_MODEL_DIR
 
 PER_SEED_METRICS_PATH = METRICS_DIR / "tabular_baseline_metrics_by_seed.csv"
 SUMMARY_METRICS_PATH = METRICS_DIR / "tabular_baseline_metrics_summary.csv"
